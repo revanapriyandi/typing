@@ -35,6 +35,7 @@ function MultiplayerContent() {
   const [joinCode, setJoinCode] = useState("");
   const [countdown, setCountdown] = useState<number | null>(null);
   const [showExitWarning, setShowExitWarning] = useState(false);
+  const [isMatchmaking, setIsMatchmaking] = useState(false);
   
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
@@ -157,12 +158,17 @@ function MultiplayerContent() {
 
   const handleMatchmake = async () => {
     if (!user) { toast.error("Sign in to find a match"); return; }
+    setIsMatchmaking(true);
     try {
       const id = await findPublicRoom(user.uid, user.displayName || "Anonymous", user.photoURL || "");
       setRoomId(id);
       router.push(`/multiplayer?room=${id}`);
       toast.success("Joined a public match!");
-    } catch { toast.error("Error finding match"); }
+    } catch { 
+      toast.error("Error finding match. Try creating one!"); 
+    } finally {
+      setIsMatchmaking(false);
+    }
   };
 
   const handleSendChat = async (e: React.FormEvent) => {
@@ -283,6 +289,23 @@ function MultiplayerContent() {
             </Card>
           </div>
         </div>
+
+        {/* Global Matchmaking Splash Overlay */}
+        {isMatchmaking && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="flex flex-col items-center gap-6 p-8 bg-background/50 border border-primary/20 rounded-2xl shadow-2xl">
+               <div className="relative flex items-center justify-center w-24 h-24">
+                 <div className="absolute inset-0 border-4 border-indigo-500/20 rounded-full"></div>
+                 <div className="absolute inset-0 border-4 border-primary rounded-full border-t-transparent animate-spin"></div>
+                 <Globe className="w-8 h-8 text-primary animate-pulse" />
+               </div>
+               <div className="text-center space-y-2">
+                 <h2 className="text-2xl font-black font-mono tracking-tighter bg-gradient-to-r from-primary to-indigo-500 bg-clip-text text-transparent">Finding Opponent</h2>
+                 <p className="text-muted-foreground animate-pulse text-sm">Searching global rooms...</p>
+               </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
