@@ -47,6 +47,9 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.json",
   metadataBase: new URL("https://type-rust.vercel.app"),
+  verification: {
+    google: "45UrIXtcX7bCpQ-QiDX32flCcABUU4JB6I4f7hE5Bh0",
+  },
 };
 
 export default async function RootLayout({
