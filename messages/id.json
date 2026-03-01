@@ -131,5 +131,13 @@
     "newCreated": "Turnamen Baru Dibuat!",
     "newCreatedDesc": "{title} sekarang terbuka untuk pendaftaran.",
     "viewLoc": "Lihat"
+  },
+  "Metadata": {
+    "title": "TypeRush — Tes Kecepatan Mengetik Online",
+    "description": "Uji kecepatan mengetik Anda, bersaing secara global di papan peringkat waktu nyata, buka pencapaian, dan balapan dengan teman dalam mode multipemain.",
+    "ogTitle": "TypeRush — Kuasai Kecepatan Mengetik Anda",
+    "ogDescription": "Bersaing secara global dan verifikasi WPM mengetik Anda dengan analitik waktu nyata. Gabung TypeRush hari ini!",
+    "twitterTitle": "TypeRush — Tes Kecepatan Mengetik Online",
+    "twitterDescription": "Seberapa cepat Anda bisa mengetik? Temukan jawabannya dengan TypeRush dan bersaing di papan peringkat global!"
   }
 }

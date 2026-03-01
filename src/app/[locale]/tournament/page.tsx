@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { listenToTournaments, Tournament, joinTournament, mockCreateUpcomingTournament } from "@/lib/tournament";
+import { listenToTournaments, Tournament, joinTournament } from "@/lib/tournament";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Trophy, Clock, Users, Calendar, ArrowRight, ShieldAlert, Plus } from "lucide-react";
+import { Trophy, Clock, Users, Calendar, ArrowRight, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { useTranslations } from "next-intl";
 import { createTournament, deleteTournament } from "@/lib/tournament";
@@ -95,11 +95,6 @@ export default function TournamentHub() {
     } catch {
       toast.error("Failed to create tournament");
     }
-  };
-
-  const handleAdminMock = async () => {
-    await mockCreateUpcomingTournament();
-    toast.success("Created mock upcoming tournament");
   };
 
   if (loading) return <div className="text-center py-20 animate-pulse text-muted-foreground">Loading tournaments...</div>;

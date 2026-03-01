@@ -11,46 +11,52 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 
-export const metadata: Metadata = {
-  title: {
-    default: "TypeRush — Online Typing Speed Test",
-    template: "%s | TypeRush"
-  },
-  description: "Test your typing speed, compete globally on real-time leaderboards, unlock achievements, and race against friends in multiplayer mode.",
-  keywords: ["typing test", "WPM", "typing speed", "leaderboard", "online typing", "type race", "fast typing", "TypeRush"],
-  authors: [{ name: "TypeRush Team" }],
-  creator: "TypeRush",
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: "https://type-rust.vercel.app",
-    title: "TypeRush — Master Your Typing Speed",
-    description: "Compete globally and verify your typing WPM with real-time analytics. Join TypeRush today!",
-    siteName: "TypeRush",
-    images: [{
-      url: "/icon.png",
-      width: 512,
-      height: 512,
-      alt: "TypeRush Logo",
-    }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "TypeRush — Online Typing Speed Test",
-    description: "How fast can you type? Find out with TypeRush and compete on the global leaderboard!",
-    images: ["/icon.png"],
-  },
-  icons: {
-    icon: "/icon.png",
-    shortcut: "/icon.png",
-    apple: "/icon.png",
-  },
-  manifest: "/manifest.json",
-  metadataBase: new URL("https://type-rust.vercel.app"),
-  verification: {
-    google: "45UrIXtcX7bCpQ-QiDX32flCcABUU4JB6I4f7hE5Bh0",
-  },
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const messages = (await import(`../../../messages/${locale}.json`)).default;
+  const t = messages.Metadata;
+
+  return {
+    title: {
+      default: t.title,
+      template: `%s | TypeRush`
+    },
+    description: t.description,
+    keywords: ["typing test", "WPM", "typing speed", "leaderboard", "online typing", "type race", "fast typing", "TypeRush"],
+    authors: [{ name: "TypeRush Team" }],
+    creator: "TypeRush",
+    openGraph: {
+      type: "website",
+      locale: locale === "id" ? "id_ID" : "en_US",
+      url: "https://type-rust.vercel.app",
+      title: t.ogTitle,
+      description: t.ogDescription,
+      siteName: "TypeRush",
+      images: [{
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "TypeRush — Online Typing Speed Test",
+      }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t.twitterTitle,
+      description: t.twitterDescription,
+      images: ["/og-image.png"],
+    },
+    icons: {
+      icon: "/icon.png",
+      shortcut: "/icon.png",
+      apple: "/icon.png",
+    },
+    manifest: "/manifest.json",
+    metadataBase: new URL("https://type-rust.vercel.app"),
+    verification: {
+      google: "45UrIXtcX7bCpQ-QiDX32flCcABUU4JB6I4f7hE5Bh0",
+    },
+  };
+}
 
 export default async function RootLayout({
   children,

@@ -7,12 +7,13 @@
 ## Features
 
 - 🏎️ **Typing Engine**: Live keystroke detection calculating WPM (Words Per Minute) and Accuracy in real-time.
+- 🏁 **Tournaments**: Join or host scheduled typing tournaments with automated bracket generation and real-time spectating.
 - 🕒 **Multiple Test Modes**: Choose between time limits (15s, 30s, 60s, 120s) or word counts (25, 50, 100).
-- 🌍 **Internationalization (i18n)**: Seamless language localization (English & Indonesian) routed via IP Geolocation or manual selection.
+- 🌍 **Internationalization (i18n)**: Seamless language localization (English & Indonesian) with dynamic metadata for social sharing.
 - 🏆 **Global Leaderboard**: Competitive daily, weekly, and all-time leaderboards showcasing the fastest typists around the world.
 - 🏅 **Achievement System**: Unlock dynamic badges as you conquer specific milestones (e.g., Century Typer, Perfection).
 - 👤 **User Profiles**: Track your personal progress, average WPM, and gallery of unlocked achievements via Firebase Authentication.
-- 🏁 **Real-time Multiplayer**: Host or join private rooms and race against friends live via Firebase Realtime Database.
+- 🤝 **Real-time Multiplayer**: Host or join private rooms and race against friends live via Firebase Realtime Database.
 - ⌨️ **Mechanical Sound Effects**: Immersive, toggleable mechanical keyboard sounds.
 
 ## Tech Stack
@@ -31,7 +32,7 @@ Follow these steps to set up the project locally:
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/typerush.git
+git clone https://github.com/revanapriyandi/typerush.git
 cd typerush
 ```
 
