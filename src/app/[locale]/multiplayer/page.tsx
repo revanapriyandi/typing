@@ -3,14 +3,14 @@
 import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createRoom, joinRoom, leaveRoom, listenToRoom, updatePlayerState, updateRoomStatus, RoomState } from "@/lib/realtime";
+import { createRoom, joinRoom, leaveRoom, listenToRoom, updatePlayerState, updateRoomStatus, RoomState, findPublicRoom, sendChatMessage, listenToChat, ChatMessage } from "@/lib/realtime";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { useTypingEngine } from "@/hooks/useTypingEngine";
-import { Users, Play, ArrowLeft, Link as LinkIcon } from "lucide-react";
+import { Users, Play, ArrowLeft, Link as LinkIcon, Globe, Send } from "lucide-react";
 import { Character } from "@/components/Character";
 import { useTranslations } from "next-intl";
 import {
@@ -35,6 +35,9 @@ function MultiplayerContent() {
   const [joinCode, setJoinCode] = useState("");
   const [countdown, setCountdown] = useState<number | null>(null);
   const [showExitWarning, setShowExitWarning] = useState(false);
+  
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState("");
   const t = useTranslations("Multiplayer");
 
   // Engine only used when playing
@@ -68,7 +71,9 @@ function MultiplayerContent() {
       setRoom(data);
     });
 
-    return () => unsub();
+    const unsubChat = listenToChat(roomId, (msgs) => setChatMessages(msgs));
+
+    return () => { unsub(); unsubChat(); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, user]);
 
@@ -150,6 +155,23 @@ function MultiplayerContent() {
     } catch (e) { toast.error((e as Error).message); }
   };
 
+  const handleMatchmake = async () => {
+    if (!user) { toast.error("Sign in to find a match"); return; }
+    try {
+      const id = await findPublicRoom(user.uid, user.displayName || "Anonymous", user.photoURL || "");
+      setRoomId(id);
+      router.push(`/multiplayer?room=${id}`);
+      toast.success("Joined a public match!");
+    } catch { toast.error("Error finding match"); }
+  };
+
+  const handleSendChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || !user || !roomId) return;
+    await sendChatMessage(roomId, user.uid, user.displayName || "Anon", chatInput.trim());
+    setChatInput("");
+  };
+
   const handleLeave = () => {
     if (roomId && user) {
       leaveRoom(roomId, user.uid, room?.hostId === user.uid);
@@ -186,7 +208,17 @@ function MultiplayerContent() {
           <p className="text-muted-foreground">{t("heroDesc")}</p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 mt-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+          <Card className="bg-muted/30 border-border/40 backdrop-blur shadow-xl">
+            <CardHeader>
+              <CardTitle>Public Match</CardTitle>
+              <CardDescription>Join a random race instantly</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={handleMatchmake} className="w-full h-12 text-lg font-bold bg-indigo-600 hover:bg-indigo-700 text-white"><Globe className="w-5 h-5 mr-2"/> Find Match</Button>
+            </CardContent>
+          </Card>
+
           <Card className="bg-muted/30 border-border/40 backdrop-blur shadow-xl">
             <CardHeader>
               <CardTitle>{t("createRoom")}</CardTitle>
@@ -291,6 +323,31 @@ function MultiplayerContent() {
           </div>
         </div>
       )}
+
+      {/* Live Chat Area */}
+      <div className="mt-4 bg-muted/20 border border-border/40 rounded-xl flex flex-col h-64 overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+          {chatMessages.length === 0 ? (
+            <div className="text-muted-foreground text-sm m-auto opacity-50">No messages yet. Say hi!</div>
+          ) : (
+            chatMessages.map(msg => (
+              <div key={msg.id} className="text-sm">
+                <span className="font-bold text-primary mr-2">{msg.displayName}:</span>
+                <span className="text-foreground/80">{msg.text}</span>
+              </div>
+            ))
+          )}
+        </div>
+        <form onSubmit={handleSendChat} className="p-3 bg-muted/40 border-t border-border/40 flex gap-2">
+           <Input 
+             value={chatInput} 
+             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setChatInput(e.target.value)}
+             placeholder="Type a message..."
+             className="flex-1 bg-background"
+           />
+           <Button type="submit" size="icon" disabled={!chatInput.trim()}><Send className="w-4 h-4" /></Button>
+        </form>
+      </div>
 
       {/* ── Tab Switch Warning Dialog ── */}
       <AlertDialog open={showExitWarning} onOpenChange={setShowExitWarning}>

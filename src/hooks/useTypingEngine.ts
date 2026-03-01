@@ -20,6 +20,8 @@ export interface TypingStats {
   correctChars: number;
   incorrectChars: number;
   totalTyped: number;
+  heatmap: Record<string, { correct: number; incorrect: number }>;
+  keystrokes: { char: string; time: number; index: number }[];
 }
 
 interface UseTypingEngineProps {
@@ -27,13 +29,14 @@ interface UseTypingEngineProps {
   duration: number; // seconds for time mode, word count for word mode
   language: Language;
   initialText?: string;
+  customText?: string;
 }
 
-export function useTypingEngine({ mode, duration, language, initialText }: UseTypingEngineProps) {
+export function useTypingEngine({ mode, duration, language, initialText, customText }: UseTypingEngineProps) {
   const [text, setText] = useState<string>(() => {
     if (initialText) return initialText;
     const wordCount = mode === "time" ? Math.ceil(duration * 0.9) : duration;
-    return generateParagraph(language, Math.max(wordCount, 60));
+    return generateParagraph(language, Math.max(wordCount, 60), customText);
   });
   const [chars, setChars] = useState<CharState[]>(() => 
     text.split("").map((c) => ({ char: c, status: "pending" }))
@@ -47,6 +50,8 @@ export function useTypingEngine({ mode, duration, language, initialText }: UseTy
   const [incorrectChars, setIncorrectChars] = useState(0);
   const startTimeRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
+  const [heatmap, setHeatmap] = useState<Record<string, { correct: number, incorrect: number }>>({});
+  const [keystrokes, setKeystrokes] = useState<{ char: string; time: number; index: number }[]>([]);
 
   const { playClick, isMuted, toggleMute } = useTypingSound();
 
@@ -54,7 +59,7 @@ export function useTypingEngine({ mode, duration, language, initialText }: UseTy
     let newText = initialText;
     if (!newText) {
       const wordCount = mode === "time" ? Math.ceil(duration * 0.9) : duration;
-      newText = generateParagraph(language, Math.max(wordCount, 60));
+      newText = generateParagraph(language, Math.max(wordCount, 60), customText);
     }
     setText(newText);
     setChars(newText.split("").map((c) => ({ char: c, status: "pending" })));
@@ -65,9 +70,11 @@ export function useTypingEngine({ mode, duration, language, initialText }: UseTy
     setTimeElapsed(0);
     setCorrectChars(0);
     setIncorrectChars(0);
+    setHeatmap({});
+    setKeystrokes([]);
     startTimeRef.current = null;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-  }, [mode, duration, language, initialText]);
+  }, [mode, duration, language, initialText, customText]);
 
   // Initialize test handled by lazy state initialization and manual reset calls from consumer Components
 
@@ -135,6 +142,19 @@ export function useTypingEngine({ mode, duration, language, initialText }: UseTy
         const isCorrect = e.key === text[currentIndex];
         next[currentIndex] = { ...next[currentIndex], status: isCorrect ? "correct" : "incorrect" };
 
+        const stamp = { char: e.key, time: Date.now() - (startTimeRef.current || Date.now()), index: currentIndex };
+        setKeystrokes((prev) => [...prev, stamp]);
+
+        const expectedChar = text[currentIndex].toLowerCase();
+        
+        setHeatmap((prev) => {
+          const map = { ...prev };
+          if (!map[expectedChar]) map[expectedChar] = { correct: 0, incorrect: 0 };
+          if (isCorrect) map[expectedChar].correct += 1;
+          else map[expectedChar].incorrect += 1;
+          return map;
+        });
+
         if (isCorrect) {
           setCorrectChars((c) => c + 1);
           playClick();
@@ -179,6 +199,8 @@ export function useTypingEngine({ mode, duration, language, initialText }: UseTy
     correctChars,
     incorrectChars,
     totalTyped,
+    heatmap,
+    keystrokes,
   };
 
   return { chars, currentIndex, stats, reset: initTest, isMuted, toggleMute };

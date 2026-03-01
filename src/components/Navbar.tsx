@@ -10,10 +10,10 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sun, Moon, Trophy, LogOut, User } from "lucide-react";
+import { Trophy, LogOut, User, Palette } from "lucide-react";
 import { useEffect, useState } from "react";
 
-function ThemeToggle() {
+function ThemeSwitcher() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   
@@ -25,16 +25,34 @@ function ThemeToggle() {
   
   if (!mounted) return <Button variant="ghost" size="icon" className="w-9 h-9" disabled />;
   
+  const themes = [
+    { name: "Light", value: "light" },
+    { name: "Dark", value: "dark" },
+    { name: "Dracula", value: "theme-dracula" },
+    { name: "Monokai", value: "theme-monokai" },
+    { name: "Cyberpunk", value: "theme-cyberpunk" },
+    { name: "Nord", value: "theme-nord" },
+  ];
+
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="w-9 h-9"
-      aria-label="Toggle theme"
-    >
-      {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="w-9 h-9" aria-label="Toggle theme">
+          <Palette className="w-4 h-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {themes.map((t) => (
+          <DropdownMenuItem 
+            key={t.value} 
+            onClick={() => setTheme(t.value)}
+            className={theme === t.value ? "bg-muted font-bold" : ""}
+          >
+            {t.name}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -76,7 +94,7 @@ export default function Navbar() {
 
         {/* Right side */}
         <div className="flex items-center gap-2">
-          <ThemeToggle />
+          <ThemeSwitcher />
 
           {isAnon ? (
             <Button onClick={signInWithGoogle} size="sm" className="font-semibold">

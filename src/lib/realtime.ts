@@ -1,5 +1,5 @@
 import { rtdb } from "./firebase";
-import { ref, set, get, update, onValue, off, remove, serverTimestamp, DataSnapshot } from "firebase/database";
+import { ref, set, get, update, onValue, off, remove, serverTimestamp, DataSnapshot, push, query, orderByChild, equalTo, limitToFirst } from "firebase/database";
 import { generateParagraph } from "./words";
 
 export type RoomStatus = "waiting" | "countdown" | "playing" | "finished";
@@ -21,6 +21,14 @@ export interface RoomState {
   players: Record<string, PlayerState>;
   countdownStart?: number;
   createdAt: object;
+}
+
+export interface ChatMessage {
+  id: string;
+  uid: string;
+  displayName: string;
+  text: string;
+  timestamp: number;
 }
 
 // Generate a 6-character room code
@@ -126,4 +134,48 @@ export const listenToRoom = (roomId: string, callback: (room: RoomState | null) 
   return () => {
     off(roomRef, "value", handleData);
   };
+};
+
+export const findPublicRoom = async (uid: string, displayName: string, photoURL: string): Promise<string> => {
+  const roomsRef = ref(rtdb, 'rooms');
+  const q = query(roomsRef, orderByChild('status'), equalTo('waiting'), limitToFirst(10));
+  const snapshot = await get(q);
+  
+  if (snapshot.exists()) {
+    const rooms = snapshot.val();
+    for (const [roomId, room] of Object.entries(rooms) as [string, RoomState][]) {
+      if (Object.keys(room.players || {}).length < 4) {
+        await joinRoom(roomId, uid, displayName, photoURL);
+        return roomId;
+      }
+    }
+  }
+  
+  return createRoom(uid, displayName, photoURL);
+};
+
+export const sendChatMessage = async (roomId: string, uid: string, displayName: string, text: string) => {
+  const chatRef = ref(rtdb, `rooms/${roomId}/chat`);
+  const newMsgRef = push(chatRef);
+  await set(newMsgRef, {
+    id: newMsgRef.key,
+    uid,
+    displayName,
+    text,
+    timestamp: Date.now()
+  });
+};
+
+export const listenToChat = (roomId: string, callback: (messages: ChatMessage[]) => void) => {
+  const chatRef = ref(rtdb, `rooms/${roomId}/chat`);
+  const handleData = (snapshot: DataSnapshot) => {
+    if (snapshot.exists()) {
+      const msgs = Object.values(snapshot.val() as Record<string, ChatMessage>);
+      callback(msgs.sort((a, b) => a.timestamp - b.timestamp));
+    } else {
+      callback([]);
+    }
+  };
+  onValue(chatRef, handleData);
+  return () => off(chatRef, "value", handleData);
 };

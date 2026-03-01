@@ -10,8 +10,10 @@ import { Separator } from "@/components/ui/separator";
 import { getUserProfile, getUserScores, UserProfile, ScoreEntry } from "@/lib/firestore";
 import { ACHIEVEMENTS, RARITY_COLORS } from "@/lib/achievements";
 import { formatDistanceToNow } from "date-fns";
-import { Keyboard, Clock, Target, Zap, Medal } from "lucide-react";
+import { Keyboard, Clock, Target, Zap, Medal, LineChart as ChartIcon, Activity } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Heatmap } from "@/components/Heatmap";
+import { ProgressChart } from "@/components/ProgressChart";
 
 function StatCard({ value, label, icon: Icon }: { value: string | number; label: string, icon?: React.ElementType }) {
   return (
@@ -130,6 +132,33 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* ── Advanced Analytics ── */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          <Card className="border-border/40 shadow-xl bg-background/60 backdrop-blur-md rounded-2xl overflow-hidden">
+            <CardHeader className="border-b border-border/40 bg-muted/10 px-8 py-6">
+              <div className="flex items-center gap-3">
+                <ChartIcon className="w-6 h-6 text-primary" />
+                <CardTitle className="text-2xl font-bold">WPM Progression</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="p-8">
+              <ProgressChart history={profile.wpmHistory} />
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/40 shadow-xl bg-background/60 backdrop-blur-md rounded-2xl overflow-hidden">
+            <CardHeader className="border-b border-border/40 bg-muted/10 px-8 py-6">
+              <div className="flex items-center gap-3">
+                <Activity className="w-6 h-6 text-primary" />
+                <CardTitle className="text-2xl font-bold">Keystroke Heatmap</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="p-8">
+              <Heatmap heatmapData={profile.heatmap} />
+            </CardContent>
+          </Card>
+        </div>
 
         {/* ── Score History ── */}
         <Card className="border-border/40 shadow-xl bg-background/60 backdrop-blur-md rounded-2xl overflow-hidden">

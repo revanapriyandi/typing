@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 @import "tailwindcss";
 
@@ -34,14 +34,20 @@
 
   --radius: 0.5rem;
 
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Consolas", monospace;
 }
 
 /* ── Base styles ── */
-*, *::before, *::after { box-sizing: border-box; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+}
 
 body {
   font-family: var(--font-sans);
@@ -79,17 +85,118 @@ body {
   --color-ring: #d4d4d8;
 }
 
+/* ── Custom Developer Themes ── */
+
+/* Dracula Theme */
+.theme-dracula {
+  --color-background: #282a36;
+  --color-foreground: #f8f8f2;
+  --color-card: #282a36;
+  --color-card-foreground: #f8f8f2;
+  --color-popover: #282a36;
+  --color-popover-foreground: #f8f8f2;
+  --color-primary: #bd93f9;
+  --color-primary-foreground: #282a36;
+  --color-secondary: #44475a;
+  --color-secondary-foreground: #f8f8f2;
+  --color-muted: #44475a;
+  --color-muted-foreground: #6272a4;
+  --color-accent: #44475a;
+  --color-accent-foreground: #f8f8f2;
+  --color-destructive: #ff5555;
+  --color-destructive-foreground: #f8f8f2;
+  --color-border: #44475a;
+  --color-input: #44475a;
+  --color-ring: #bd93f9;
+}
+
+/* Monokai Theme */
+.theme-monokai {
+  --color-background: #272822;
+  --color-foreground: #f8f8f2;
+  --color-card: #272822;
+  --color-card-foreground: #f8f8f2;
+  --color-popover: #272822;
+  --color-popover-foreground: #f8f8f2;
+  --color-primary: #a6e22e;
+  --color-primary-foreground: #272822;
+  --color-secondary: #3e3d32;
+  --color-secondary-foreground: #f8f8f2;
+  --color-muted: #3e3d32;
+  --color-muted-foreground: #75715e;
+  --color-accent: #3e3d32;
+  --color-accent-foreground: #f8f8f2;
+  --color-destructive: #f92672;
+  --color-destructive-foreground: #f8f8f2;
+  --color-border: #3e3d32;
+  --color-input: #3e3d32;
+  --color-ring: #a6e22e;
+}
+
+/* Cyberpunk Theme */
+.theme-cyberpunk {
+  --color-background: #0f0f1d;
+  --color-foreground: #00ffcc;
+  --color-card: #151525;
+  --color-card-foreground: #00ffcc;
+  --color-popover: #151525;
+  --color-popover-foreground: #00ffcc;
+  --color-primary: #ff00ff;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #22223a;
+  --color-secondary-foreground: #00ffcc;
+  --color-muted: #22223a;
+  --color-muted-foreground: #6b6b90;
+  --color-accent: #22223a;
+  --color-accent-foreground: #00ffcc;
+  --color-destructive: #ff003c;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #22223a;
+  --color-input: #22223a;
+  --color-ring: #ff00ff;
+}
+
+/* Nord Theme */
+.theme-nord {
+  --color-background: #2e3440;
+  --color-foreground: #d8dee9;
+  --color-card: #2e3440;
+  --color-card-foreground: #d8dee9;
+  --color-popover: #2e3440;
+  --color-popover-foreground: #d8dee9;
+  --color-primary: #88c0d0;
+  --color-primary-foreground: #2e3440;
+  --color-secondary: #3b4252;
+  --color-secondary-foreground: #d8dee9;
+  --color-muted: #3b4252;
+  --color-muted-foreground: #4c566a;
+  --color-accent: #3b4252;
+  --color-accent-foreground: #d8dee9;
+  --color-destructive: #bf616a;
+  --color-destructive-foreground: #d8dee9;
+  --color-border: #3b4252;
+  --color-input: #3b4252;
+  --color-ring: #88c0d0;
+}
+
 /* ── Typing character states ── */
-.char-correct   { color: var(--color-foreground); }
-.char-incorrect { color: var(--color-destructive); }
-.char-pending   { color: var(--color-muted-foreground); opacity: 0.5; }
+.char-correct {
+  color: var(--color-foreground);
+}
+.char-incorrect {
+  color: var(--color-destructive);
+}
+.char-pending {
+  color: var(--color-muted-foreground);
+  opacity: 0.5;
+}
 
 .char-current {
   position: relative;
   color: var(--color-foreground);
 }
 .char-current::before {
-  content: '';
+  content: "";
   position: absolute;
   left: -1px;
   top: 15%;
@@ -101,8 +208,14 @@ body {
 }
 
 @keyframes caretPulse {
-  0%, 40%  { opacity: 1; }
-  60%, 100% { opacity: 0; }
+  0%,
+  40% {
+    opacity: 1;
+  }
+  60%,
+  100% {
+    opacity: 0;
+  }
 }
 
 @layer utilities {

@@ -28,6 +28,7 @@ export interface ScoreEntry {
   duration: number;
   mode: string;
   language: string;
+  keystrokes?: { char: string; time: number; index: number }[];
   createdAt: Timestamp | null;
 }
 
@@ -40,6 +41,8 @@ export interface UserProfile {
   totalTests: number;
   totalTime: number;
   achievements: string[];
+  heatmap?: Record<string, { correct: number; incorrect: number }>;
+  wpmHistory?: { date: string; wpm: number }[];
   createdAt: Timestamp | null;
 }
 
@@ -114,6 +117,8 @@ export async function getOrCreateUserProfile(
     totalTests: 0,
     totalTime: 0,
     achievements: [],
+    heatmap: {},
+    wpmHistory: [],
     createdAt: null,
   };
   await setDoc(userRef, { ...profile, createdAt: serverTimestamp() });
@@ -123,16 +128,35 @@ export async function getOrCreateUserProfile(
 export async function updateUserStats(
   uid: string,
   wpm: number,
-  duration: number
+  duration: number,
+  sessionHeatmap: Record<string, { correct: number; incorrect: number }> = {}
 ): Promise<void> {
   const userRef = doc(db, "users", uid);
   const snap = await getDoc(userRef);
   if (!snap.exists()) return;
   const data = snap.data() as UserProfile;
+  
+  // Merge heatmap
+  const mergedHeatmap = { ...(data.heatmap || {}) };
+  for (const [char, stats] of Object.entries(sessionHeatmap)) {
+    if (!mergedHeatmap[char]) {
+      mergedHeatmap[char] = { correct: 0, incorrect: 0 };
+    }
+    mergedHeatmap[char].correct += stats.correct;
+    mergedHeatmap[char].incorrect += stats.incorrect;
+  }
+
+  // Update WPM history (keep last 30 tests)
+  const history = data.wpmHistory || [];
+  const newPoint = { date: new Date().toISOString(), wpm };
+  const updatedHistory = [...history, newPoint].slice(-30);
+
   await updateDoc(userRef, {
     totalTests: increment(1),
     totalTime: increment(duration),
     bestWpm: wpm > data.bestWpm ? wpm : data.bestWpm,
+    heatmap: mergedHeatmap,
+    wpmHistory: updatedHistory,
   });
 }
 

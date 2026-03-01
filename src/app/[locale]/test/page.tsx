@@ -37,6 +37,7 @@ export default function TestPage() {
   const [time, setTime] = useState<TimeMode>(30);
   const [words, setWords] = useState<WordMode>(25);
   const [lang, setLang] = useState<Language>("english");
+  const [customText, setCustomText] = useState("");
   const t = useTranslations("Test");
   const [showResult, setShowResult] = useState(false);
   const [result, setResult] = useState<{ 
@@ -57,7 +58,7 @@ export default function TestPage() {
   const terminalBodyRef = useRef<HTMLDivElement>(null);
 
   const dur = mode === "time" ? time : words;
-  const { chars, currentIndex, stats, reset, isMuted, toggleMute } = useTypingEngine({ mode, duration: dur, language: lang });
+  const { chars, currentIndex, stats, reset, isMuted, toggleMute } = useTypingEngine({ mode, duration: dur, language: lang, customText });
 
   // Prevent hydration mismatch on audio toggle
   const [mounted, setMounted] = useState(false);
@@ -89,8 +90,8 @@ export default function TestPage() {
   const doSave = async (wpm: number, accuracy: number) => {
     if (!user || user.isAnonymous) return;
     try {
-      await saveScore({ uid: user.uid, displayName: user.displayName || "Anonymous", photoURL: user.photoURL || "", country: "Unknown", wpm, accuracy, duration: mode === "time" ? time : 0, mode: mode === "time" ? `${time}s` : `${words}w`, language: lang });
-      await updateUserStats(user.uid, wpm, mode === "time" ? time : 0);
+      await saveScore({ uid: user.uid, displayName: user.displayName || "Anonymous", photoURL: user.photoURL || "", country: "Unknown", wpm, accuracy, duration: mode === "time" ? time : 0, mode: mode === "time" ? `${time}s` : `${words}w`, language: lang, keystrokes: stats.keystrokes });
+      await updateUserStats(user.uid, wpm, mode === "time" ? time : 0, stats.heatmap);
       const profile = await getUserProfile(user.uid);
       if (profile) {
         const newAchs = checkAchievements({ wpm, accuracy, totalTests: profile.totalTests + 1, unlockedAchievements: profile.achievements || [], duration: mode === "time" ? time : 0 }, new Date().getHours());
@@ -130,7 +131,7 @@ export default function TestPage() {
     setShowResult(false);
     reset();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, time, words, lang]);
+  }, [mode, time, words, lang, customText]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -267,6 +268,9 @@ export default function TestPage() {
               <button onClick={() => setLang("spanish")} className={`transition-all hover:text-foreground uppercase ${lang === "spanish" ? "text-primary font-bold drop-shadow-sm" : ""}`}>{t("langEs")}</button>
               <button onClick={() => setLang("french")} className={`transition-all hover:text-foreground uppercase ${lang === "french" ? "text-primary font-bold drop-shadow-sm" : ""}`}>{t("langFr")}</button>
               <button onClick={() => setLang("german")} className={`transition-all hover:text-foreground uppercase ${lang === "german" ? "text-primary font-bold drop-shadow-sm" : ""}`}>{t("langDe")}</button>
+              <Separator orientation="vertical" className="h-5 opacity-40 mx-1" />
+              <button onClick={() => setLang("coding")} className={`transition-all hover:text-foreground uppercase ${lang === "coding" ? "text-primary font-bold drop-shadow-sm" : ""}`}>{"</>"}</button>
+              <button onClick={() => setLang("custom")} className={`transition-all hover:text-foreground uppercase ${lang === "custom" ? "text-primary font-bold drop-shadow-sm" : ""}`}>Custom</button>
             </div>
           </div>
 
@@ -292,7 +296,7 @@ export default function TestPage() {
           </div>
         </div>
 
-        {/* Live Stats Header (Only visible when typing) */}
+        {/* Live Stats Header & Custom Input */}
         <div className={`h-10 sm:h-14 flex items-center justify-between px-4 sm:px-10 text-base sm:text-2xl font-bold font-mono text-primary transition-opacity duration-300 ${stats.isStarted && !stats.isFinished ? "opacity-100 mt-2 sm:mt-4" : "opacity-0 invisible h-0"}`}>
             <div className="flex items-baseline gap-2">
                {stats.wpm} <span className="text-xs font-bold text-muted-foreground uppercase opacity-70 tracking-widest">wpm</span>
@@ -302,6 +306,17 @@ export default function TestPage() {
                {mode === "time" && <span className="text-xs font-bold text-muted-foreground uppercase opacity-70 tracking-widest">s</span>}
             </div>
         </div>
+
+        {!stats.isStarted && !stats.isFinished && lang === "custom" && (
+          <div className="w-full px-4 sm:px-10 mt-4 mb-2 animate-in fade-in slide-in-from-top-4 duration-300">
+            <textarea
+              className="w-full h-24 bg-muted/30 border border-border/50 rounded-lg p-3 font-mono text-sm text-foreground/80 placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50 resize-none transition-all"
+              placeholder="Paste or type your custom text here..."
+              value={customText}
+              onChange={(e) => setCustomText(e.target.value)}
+            />
+          </div>
+        )}
 
         {/* Progress bar */}
         {stats.isStarted && !stats.isFinished && (

@@ -79,9 +79,20 @@ const GERMAN_WORDS = [
   "weil", "diesen", "ihren", "würde", "geben", "zwei", "sehr", "damit", "machen", "gehen",
 ];
 
-export type Language = "english" | "indonesian" | "spanish" | "french" | "german";
+const CODING_SNIPPETS = [
+  "function calculateWpm(correctChars, timeMins) {\n  return Math.round((correctChars / 5) / timeMins);\n}",
+  "import { useState, useEffect } from 'react';\n\nexport default function App() {\n  return <div>Hello World</div>;\n}",
+  "for (let i = 0; i < array.length; i++) {\n  console.log(array[i]);\n}",
+  "def fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)",
+  "const [data, setData] = useState(null);\nuseEffect(() => {\n  fetch('/api/data').then(res => res.json()).then(setData);\n}, []);",
+  "interface User {\n  id: string;\n  name: string;\n  email: string;\n}\n\nconst user: User = { id: '1', name: 'John Doe', email: 'john@example.com' };",
+  "CREATE TABLE users (\n  id INT PRIMARY KEY,\n  username VARCHAR(50) NOT NULL,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);",
+  "class Animal {\n  constructor(name) {\n    this.name = name;\n  }\n  speak() {\n    console.log(`${this.name} makes a noise.`);\n  }\n}"
+];
 
-const POOLS: Record<Language, string[]> = {
+export type Language = "english" | "indonesian" | "spanish" | "french" | "german" | "coding" | "custom";
+
+const POOLS: Partial<Record<Language, string[]>> = {
   english: ENGLISH_WORDS,
   indonesian: INDONESIAN_WORDS,
   spanish: SPANISH_WORDS,
@@ -98,6 +109,16 @@ export function generateWords(language: Language, count: number): string {
   return words.join(" ");
 }
 
-export function generateParagraph(language: Language, wordCount: number = 60): string {
+export function generateParagraph(language: Language, wordCount: number = 60, customText: string = ""): string {
+  if (language === "custom") return customText || "You have selected Custom mode. Please enter your text to begin.";
+  if (language === "coding") {
+    // For coding, we ignore exact word count and pick random snippets based on requested length loosely
+    const snips = [];
+    const snipCount = wordCount < 30 ? 1 : 2;
+    for (let i = 0; i < snipCount; i++) {
+        snips.push(CODING_SNIPPETS[Math.floor(Math.random() * CODING_SNIPPETS.length)]);
+    }
+    return snips.join("\n\n");
+  }
   return generateWords(language, wordCount);
 }
