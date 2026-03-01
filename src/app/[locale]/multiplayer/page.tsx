@@ -4,10 +4,12 @@ import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createRoom, joinRoom, leaveRoom, listenToRoom, updatePlayerState, updateRoomStatus, RoomState, findPublicRoom, sendChatMessage, listenToChat, ChatMessage } from "@/lib/realtime";
+import { updateMatchWinner, TournamentBracket } from "@/lib/tournament";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useTypingEngine } from "@/hooks/useTypingEngine";
 import { Users, Play, ArrowLeft, ArrowRight, Link as LinkIcon, Globe, Send } from "lucide-react";
@@ -29,6 +31,10 @@ function MultiplayerContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryRoom = searchParams.get("room");
+  const isSpectating = searchParams.get("spectate") === "true";
+  const queryTourney = searchParams.get("tournamentId");
+  const queryStage = searchParams.get("stage") as keyof TournamentBracket | null;
+  const queryMatch = searchParams.get("matchId");
 
   const [roomId, setRoomId] = useState<string | null>(queryRoom || null);
   const [room, setRoom] = useState<RoomState | null>(null);
@@ -53,8 +59,8 @@ function MultiplayerContent() {
   useEffect(() => {
     if (!roomId || !user) return;
     
-    // Auto-join if coming from link
-    if (queryRoom && !room) {
+    // Auto-join if coming from link (unless spectating)
+    if (queryRoom && !room && !isSpectating) {
       joinRoom(roomId, user.uid, user.displayName || "Anonymous", user.photoURL || "").catch(e => {
         toast.error("Failed to join room: " + e.message);
         router.push("/multiplayer");
@@ -78,17 +84,24 @@ function MultiplayerContent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, user]);
 
-  // Sync Progress to Firebase
+  // Sync Progress to Firebase (only if playing, not spectating)
   useEffect(() => {
-    if (room?.status === "playing" && roomId && user) {
+    if (room?.status === "playing" && roomId && user && !isSpectating) {
       const p = Math.floor((engine.currentIndex / Math.max(1, engine.chars.length)) * 100);
       updatePlayerState(roomId, user.uid, { 
         progress: p, 
         wpm: engine.stats.wpm,
         finishedAt: engine.stats.isFinished ? Date.now() : null
       });
+
+      // Handle Tournament Win condition
+      if (engine.stats.isFinished && queryTourney && queryStage && queryMatch) {
+         updateMatchWinner(queryTourney, queryStage, queryMatch, user.uid).catch(console.error);
+         updateRoomStatus(roomId, "finished").catch(console.error);
+         toast.success("Match Finished! Tournament Bracket Updated.", { duration: 5000 });
+      }
     }
-  }, [engine.currentIndex, engine.chars.length, engine.stats.wpm, engine.stats.isFinished, room?.status, roomId, user]);
+  }, [engine.currentIndex, engine.chars.length, engine.stats.wpm, engine.stats.isFinished, room?.status, roomId, user, isSpectating, queryTourney, queryStage, queryMatch]);
 
   // Tab switch & Reload active session warning
   useEffect(() => {
@@ -179,7 +192,7 @@ function MultiplayerContent() {
   };
 
   const handleLeave = () => {
-    if (roomId && user) {
+    if (roomId && user && !isSpectating) {
       leaveRoom(roomId, user.uid, room?.hostId === user.uid);
     }
     setRoomId(null);
@@ -320,7 +333,10 @@ function MultiplayerContent() {
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={handleLeave}><ArrowLeft className="w-5 h-5" /></Button>
           <div>
-            <h2 className="text-xl font-bold font-mono">{t("roomIdLabel")} <span className="text-primary">{room.roomId}</span></h2>
+            <h2 className="text-xl font-bold font-mono flex items-center gap-2">
+              {t("roomIdLabel")} <span className="text-primary">{room.roomId}</span>
+              {isSpectating && <Badge variant="secondary" className="bg-amber-500/20 text-amber-500 ml-2 animate-pulse">SPECTATING</Badge>}
+            </h2>
             <p className="text-sm text-muted-foreground">{Object.keys(room.players).length} {t("connected")}</p>
           </div>
         </div>
@@ -356,8 +372,8 @@ function MultiplayerContent() {
         ))}
       </div>
 
-      {/* Typing Area (Only active during play) */}
-      {room.status !== "waiting" && (
+      {/* Typing Area (Only active during play, hidden for spectators) */}
+      {room.status !== "waiting" && !isSpectating && (
         <div className="w-full mt-4 p-8 bg-background border border-border/40 rounded-xl shadow-2xl relative">
           {room.status === "countdown" && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-xl">

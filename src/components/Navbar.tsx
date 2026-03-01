@@ -10,8 +10,39 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Trophy, LogOut, User, Palette } from "lucide-react";
+import { Trophy, LogOut, User, Palette, Globe } from "lucide-react";
 import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+
+function LanguageSwitcher() {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const switchLocale = (newLocale: string) => {
+    if (!pathname) return;
+    const segments = pathname.split('/');
+    segments[1] = newLocale;
+    router.push(segments.join('/') || '/');
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="w-9 h-9" aria-label="Toggle language">
+          <Globe className="w-4 h-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => switchLocale("en")} className="font-medium">
+          English
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => switchLocale("id")} className="font-medium">
+          Indonesia
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 function ThemeSwitcher() {
   const { theme, setTheme } = useTheme();
@@ -80,6 +111,7 @@ export default function Navbar() {
           {[
             { href: `/${locale}/test`, label: t("test") }, 
             { href: `/${locale}/multiplayer`, label: t("multiplayer") },
+            { href: `/${locale}/tournament`, label: "Tournaments" },
             { href: `/${locale}/leaderboard`, label: t("leaderboard") }
           ].map(({ href, label }) => (
             <Link
@@ -94,6 +126,7 @@ export default function Navbar() {
 
         {/* Right side */}
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
           <ThemeSwitcher />
 
           {isAnon ? (
