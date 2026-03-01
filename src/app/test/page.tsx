@@ -219,7 +219,7 @@ export default function TestPage() {
       >
         
         {/* Terminal Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-muted/40 border-b border-border/40">
+        <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 bg-muted/40 border-b border-border/40 gap-2">
           
           {/* Mac window dots */}
           <div className="flex items-center gap-2 flex-1 group">
@@ -234,8 +234,8 @@ export default function TestPage() {
             </div>
           </div>
 
-          {/* Mode Selector - Terminal Style */}
-          <div className="flex items-center gap-6 font-mono text-sm text-muted-foreground/70 tracking-wide flex-none">
+          {/* Mode Selector - Terminal Style: scrollable on mobile */}
+          <div className="flex items-center gap-3 sm:gap-6 font-mono text-xs sm:text-sm text-muted-foreground/70 tracking-wide overflow-x-auto flex-1 min-w-0 py-1">
             {/* Mode: Time / Words */}
             <div className="flex gap-3">
               <button onClick={() => setMode("time")} className={`transition-all hover:text-foreground ${mode === "time" ? "text-primary font-bold drop-shadow-sm" : ""}`}>time</button>
@@ -291,7 +291,7 @@ export default function TestPage() {
         </div>
 
         {/* Live Stats Header (Only visible when typing) */}
-        <div className={`h-14 flex items-center justify-between px-10 text-xl md:text-2xl font-bold font-mono text-primary transition-opacity duration-300 ${stats.isStarted && !stats.isFinished ? "opacity-100 mt-4" : "opacity-0 invisible h-0"}`}>
+        <div className={`h-10 sm:h-14 flex items-center justify-between px-4 sm:px-10 text-base sm:text-2xl font-bold font-mono text-primary transition-opacity duration-300 ${stats.isStarted && !stats.isFinished ? "opacity-100 mt-2 sm:mt-4" : "opacity-0 invisible h-0"}`}>
             <div className="flex items-baseline gap-2">
                {stats.wpm} <span className="text-xs font-bold text-muted-foreground uppercase opacity-70 tracking-widest">wpm</span>
             </div>
@@ -311,7 +311,7 @@ export default function TestPage() {
         {/* Terminal Body (Typing Area) */}
         <div 
           ref={terminalBodyRef}
-          className={`p-10 sm:p-14 md:p-20 relative overflow-hidden flex flex-col ${isFullscreen ? "flex-1" : "h-[450px]"}`}
+          className={`p-4 sm:p-10 md:p-16 relative overflow-hidden flex flex-col ${isFullscreen ? "flex-1" : "h-[320px] sm:h-[400px] md:h-[450px]"}`}
         >
           {/* Main typing text container */}
           <div className="relative w-full">
