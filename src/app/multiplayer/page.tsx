@@ -11,6 +11,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { useTypingEngine } from "@/hooks/useTypingEngine";
 import { Users, Play, ArrowLeft, Link as LinkIcon } from "lucide-react";
+import { Character } from "@/components/Character";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 function MultiplayerContent() {
   const { user } = useAuth();
@@ -22,6 +33,7 @@ function MultiplayerContent() {
   const [room, setRoom] = useState<RoomState | null>(null);
   const [joinCode, setJoinCode] = useState("");
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [showExitWarning, setShowExitWarning] = useState(false);
 
   // Engine only used when playing
   const engine = useTypingEngine({
@@ -69,6 +81,31 @@ function MultiplayerContent() {
       });
     }
   }, [engine.currentIndex, engine.chars.length, engine.stats.wpm, engine.stats.isFinished, room?.status, roomId, user]);
+
+  // Tab switch & Reload active session warning
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (room?.status === "playing" && !engine.stats.isFinished) {
+        e.preventDefault();
+        e.returnValue = ""; 
+        return ""; 
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && room?.status === "playing" && !engine.stats.isFinished) {
+        setShowExitWarning(true);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [room?.status, engine.stats.isFinished]);
 
   // Handle countdown
   useEffect(() => {
@@ -242,21 +279,45 @@ function MultiplayerContent() {
             autoFocus
           >
             {engine.chars.map((c, i) => (
-              <span
-                key={i}
-                className={
-                  i < engine.currentIndex
-                    ? c.status === "correct" ? "char-correct opacity-100" : "char-incorrect text-destructive opacity-100 underline decoration-destructive/50"
-                    : i === engine.currentIndex ? "char-current border-b-2 border-primary cursor-blink"
-                    : "char-pending opacity-40"
-                }
-              >
-                {c.char}
-              </span>
+              <Character 
+                key={i} 
+                char={c.char} 
+                status={i < engine.currentIndex ? c.status : "pending"} 
+                isCurrent={i === engine.currentIndex} 
+              />
             ))}
           </div>
         </div>
       )}
+
+      {/* ── Tab Switch Warning Dialog ── */}
+      <AlertDialog open={showExitWarning} onOpenChange={setShowExitWarning}>
+        <AlertDialogContent className="bg-background border-border/40 sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold flex items-center gap-2">
+              <span className="text-destructive">⚠️</span> Race Interrupted
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              You switched tabs or lost focus during an active multiplayer race. Do you want to continue racing or leave the room?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel onClick={() => setShowExitWarning(false)} className="border-border/40">
+              Continue Race
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                setShowExitWarning(false);
+                handleLeave();
+              }}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold"
+            >
+              Leave Room
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
