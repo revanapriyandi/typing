@@ -4,14 +4,15 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Trophy, Zap, Globe, Award, Keyboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTranslations, useLocale } from "next-intl";
 
 const DEMO_TEXT = "practice makes perfect when learning to type fast";
 
 const FEATURES = [
-  { icon: Zap,      color: "text-amber-500", title: "Live Feedback",      desc: "Instant metrics on your speed and precision as you type." },
-  { icon: Globe,    color: "text-blue-500",  title: "Leaderboards",     desc: "See how you stack up against typists worldwide." },
-  { icon: Award,    color: "text-purple-500", title: "Achievements",    desc: "Earn badges and track your progress over time." },
-  { icon: Keyboard, color: "text-emerald-500", title: "Customizable",  desc: "Choose between time or word limits in multiple languages." },
+  { icon: Zap,      color: "text-amber-500", key: "feat1Title", descKey: "feat1Desc" },
+  { icon: Globe,    color: "text-blue-500",  key: "feat2Title", descKey: "feat2Desc" },
+  { icon: Award,    color: "text-purple-500", key: "feat3Title", descKey: "feat3Desc" },
+  { icon: Keyboard, color: "text-emerald-500", key: "feat4Title", descKey: "feat4Desc" },
 ];
 
 const BACKGROUND_WORDS = [
@@ -78,19 +79,21 @@ export default function HomePage() {
   const [idx, setIdx] = useState(0);
   const [wpm, setWpm] = useState(0);
   const wpmRef = useRef(0);
-  const t = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const t = useTranslations("Home");
+  const locale = useLocale();
 
   useEffect(() => {
     if (idx >= DEMO_TEXT.length) {
-      t.current = setTimeout(() => { setIdx(0); wpmRef.current = 0; setWpm(0); }, 2200);
+      timerRef.current = setTimeout(() => { setIdx(0); wpmRef.current = 0; setWpm(0); }, 2200);
       return;
     }
-    t.current = setTimeout(() => {
+    timerRef.current = setTimeout(() => {
       setIdx((i) => i + 1);
       wpmRef.current = Math.min(105, wpmRef.current + Math.random() * 6);
       setWpm(Math.round(wpmRef.current));
     }, 55 + Math.random() * 40);
-    return () => { if (t.current) clearTimeout(t.current); };
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [idx]);
 
   return (
@@ -103,24 +106,24 @@ export default function HomePage() {
         {/* Headline */}
         <div className="space-y-6 max-w-4xl relative z-10 pt-8">
           <h1 className="text-5xl md:text-7xl font-black tracking-tight text-balance">
-            Find your typing <span className="text-primary italic relative">flow.</span>
+            {t("headlinePrefix")}<span className="text-primary italic relative">{t("headlineAccent")}</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground/80 max-w-2xl mx-auto text-balance font-medium leading-relaxed mt-6">
-            A minimalist space to practice your typing speed, build muscle memory, and track your progress.
+            {t("subheadline")}
           </p>
         </div>
 
         {/* CTA */}
         <div className="flex flex-wrap gap-4 justify-center relative z-10 mt-2">
           <Button asChild size="lg" className="px-10 h-14 text-base font-semibold rounded-full shadow-md transition-all hover:scale-105">
-            <Link href="/test">
-              Start Typing
+            <Link href={`/${locale}/test`}>
+              {t("btnStart")}
               <ArrowRight className="ml-2 w-5 h-5" />
             </Link>
           </Button>
           <Button asChild size="lg" variant="outline" className="px-10 h-14 text-base font-medium rounded-full bg-background hover:bg-muted shadow-sm transition-all hover:scale-105 border-border/50">
-            <Link href="/leaderboard">
-              <Trophy className="mr-2 w-5 h-5 opacity-70" /> Leaderboard
+            <Link href={`/${locale}/leaderboard`}>
+              <Trophy className="mr-2 w-5 h-5 opacity-70" /> {t("btnLeaderboard")}
             </Link>
           </Button>
         </div>
@@ -135,7 +138,7 @@ export default function HomePage() {
               <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30" />
             </div>
             <span className="text-[10px] text-muted-foreground font-mono font-medium opacity-60 uppercase tracking-[0.2em]">
-              Preview
+              {t("preview")}
             </span>
             <div className="flex gap-4 text-right">
               <div className="flex items-baseline gap-1">
@@ -164,13 +167,13 @@ export default function HomePage() {
       <section className="w-full px-4 md:px-8 py-20 border-t border-border/40 bg-zinc-50/50 dark:bg-zinc-950/50">
         <div className="w-full max-w-[1400px] mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {FEATURES.map(({ icon: Icon, color, title, desc }) => (
-              <div key={title} className="p-6 rounded-2xl bg-background border border-border/50 shadow-sm hover:shadow-md transition-all group">
+            {FEATURES.map(({ icon: Icon, color, key, descKey }) => (
+              <div key={key} className="p-6 rounded-2xl bg-background border border-border/50 shadow-sm hover:shadow-md transition-all group">
                 <div className={`w-12 h-12 rounded-xl mb-4 flex items-center justify-center bg-muted/50 transition-colors group-hover:bg-muted ${color}`}>
                   <Icon className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-bold mb-2 tracking-tight">{title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{desc}</p>
+                <h3 className="text-lg font-bold mb-2 tracking-tight">{t(key)}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{t(descKey)}</p>
               </div>
             ))}
           </div>
@@ -178,7 +181,7 @@ export default function HomePage() {
       </section>
 
       <footer className="py-8 text-center text-sm text-muted-foreground bg-background border-t border-border/30">
-        <p>A minimalist typing experience.</p>
+        <p>{t("footerText")}</p>
       </footer>
     </div>
   );

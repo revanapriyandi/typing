@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { useTypingEngine } from "@/hooks/useTypingEngine";
 import { Users, Play, ArrowLeft, Link as LinkIcon } from "lucide-react";
 import { Character } from "@/components/Character";
+import { useTranslations } from "next-intl";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +35,7 @@ function MultiplayerContent() {
   const [joinCode, setJoinCode] = useState("");
   const [countdown, setCountdown] = useState<number | null>(null);
   const [showExitWarning, setShowExitWarning] = useState(false);
+  const t = useTranslations("Multiplayer");
 
   // Engine only used when playing
   const engine = useTypingEngine({
@@ -170,8 +172,8 @@ function MultiplayerContent() {
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <h2 className="text-2xl font-bold mb-4">Multiplayer Racing</h2>
-        <p className="text-muted-foreground mb-6">You must be signed in to race against others.</p>
+        <h2 className="text-2xl font-bold mb-4">{t("title")}</h2>
+        <p className="text-muted-foreground mb-6">{t("requiresAuth")}</p>
       </div>
     );
   }
@@ -180,32 +182,32 @@ function MultiplayerContent() {
     return (
       <div className="w-full max-w-2xl mx-auto px-4 py-12 flex flex-col gap-8">
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-black font-mono tracking-tighter">Multiplayer <span className="text-primary">Race</span></h1>
-          <p className="text-muted-foreground">Race against friends in real-time</p>
+          <h1 className="text-4xl font-black font-mono tracking-tighter">{t("heroTitle")} <span className="text-primary">{t("heroAccent")}</span></h1>
+          <p className="text-muted-foreground">{t("heroDesc")}</p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 mt-8">
           <Card className="bg-muted/30 border-border/40 backdrop-blur shadow-xl">
             <CardHeader>
-              <CardTitle>Create Room</CardTitle>
-              <CardDescription>Host a private race and invite friends</CardDescription>
+              <CardTitle>{t("createRoom")}</CardTitle>
+              <CardDescription>{t("createRoomDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={handleCreateRoom} className="w-full h-12 text-lg font-bold"><Play className="w-5 h-5 mr-2"/> Host Game</Button>
+              <Button onClick={handleCreateRoom} className="w-full h-12 text-lg font-bold"><Play className="w-5 h-5 mr-2"/> {t("hostBtn")}</Button>
             </CardContent>
           </Card>
 
           <Card className="bg-muted/30 border-border/40 backdrop-blur shadow-xl">
             <CardHeader>
-              <CardTitle>Join Room</CardTitle>
-              <CardDescription>Enter a 6-digit room code to join</CardDescription>
+              <CardTitle>{t("joinRoom")}</CardTitle>
+              <CardDescription>{t("joinRoomDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleJoinSubmit} className="flex gap-2">
                 <Input 
                   value={joinCode} 
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setJoinCode(e.target.value)} 
-                  placeholder="Code (e.g. ABC123)" 
+                  placeholder={t("joinCodeParam")} 
                   className="font-mono uppercase h-12 text-lg text-center"
                   maxLength={6}
                 />
@@ -228,20 +230,20 @@ function MultiplayerContent() {
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={handleLeave}><ArrowLeft className="w-5 h-5" /></Button>
           <div>
-            <h2 className="text-xl font-bold font-mono">Room: <span className="text-primary">{room.roomId}</span></h2>
-            <p className="text-sm text-muted-foreground">{Object.keys(room.players).length} players connected</p>
+            <h2 className="text-xl font-bold font-mono">{t("roomIdLabel")} <span className="text-primary">{room.roomId}</span></h2>
+            <p className="text-sm text-muted-foreground">{Object.keys(room.players).length} {t("connected")}</p>
           </div>
         </div>
         
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={handleCopyLink}><LinkIcon className="w-4 h-4 mr-2" /> Invite</Button>
+          <Button variant="outline" onClick={handleCopyLink}><LinkIcon className="w-4 h-4 mr-2" /> {t("inviteBtn")}</Button>
           {isHost && room.status === "waiting" && Object.keys(room.players).length > 1 && (
-            <Button onClick={() => updateRoomStatus(room.roomId, "countdown")} className="font-bold">Start Race</Button>
+            <Button onClick={() => updateRoomStatus(room.roomId, "countdown")} className="font-bold">{t("startBtn")}</Button>
           )}
           {isHost && room.status === "waiting" && Object.keys(room.players).length === 1 && (
-            <Button disabled className="opacity-50">Waiting for players...</Button>
+            <Button disabled className="opacity-50">{t("waitBtn")}</Button>
           )}
-          {room.status === "countdown" && <Button disabled className="animate-pulse">Starting in {countdown}...</Button>}
+          {room.status === "countdown" && <Button disabled className="animate-pulse">{t("startingBtn", { countdown: countdown ?? 0 })}</Button>}
         </div>
       </div>
 

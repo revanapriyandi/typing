@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useTheme } from "next-themes";
+import { useTranslations, useLocale } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -40,12 +41,14 @@ function ThemeToggle() {
 export default function Navbar() {
   const { user, signInWithGoogle, logout } = useAuth();
   const isAnon = !user || user.isAnonymous;
+  const t = useTranslations("Navigation");
+  const locale = useLocale();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-border/40 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
       <div className="w-full h-full px-4 md:px-8 flex items-center justify-between">
 
-        <Link href="/" className="flex items-center gap-1.5 group mr-8">
+        <Link href={`/${locale}`} className="flex items-center gap-1.5 group mr-8">
           <span className="font-bold text-lg tracking-tight">
             type
           </span>
@@ -57,9 +60,9 @@ export default function Navbar() {
         {/* Center links */}
         <div className="hidden sm:flex items-center gap-6">
           {[
-            { href: "/test", label: "Solo" }, 
-            { href: "/multiplayer", label: "Multiplayer" },
-            { href: "/leaderboard", label: "Leaderboard" }
+            { href: `/${locale}/test`, label: t("test") }, 
+            { href: `/${locale}/multiplayer`, label: t("multiplayer") },
+            { href: `/${locale}/leaderboard`, label: t("leaderboard") }
           ].map(({ href, label }) => (
             <Link
               key={href}
@@ -97,12 +100,12 @@ export default function Navbar() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href={`/profile/${user.uid}`} className="flex items-center gap-2">
+                  <Link href={`/${locale}/profile/${user.uid}`} className="flex items-center gap-2">
                     <User className="w-4 h-4" /> Profile
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href="/leaderboard" className="flex items-center gap-2">
+                  <Link href={`/${locale}/leaderboard`} className="flex items-center gap-2">
                     <Trophy className="w-4 h-4" /> Leaderboard
                   </Link>
                 </DropdownMenuItem>

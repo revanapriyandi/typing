@@ -11,6 +11,7 @@ import { Maximize2, Minimize2, Volume2, VolumeX } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ResultModal } from "@/components/ResultModal";
 import { Character } from "@/components/Character";
+import { useTranslations } from "next-intl";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +37,7 @@ export default function TestPage() {
   const [time, setTime] = useState<TimeMode>(30);
   const [words, setWords] = useState<WordMode>(25);
   const [lang, setLang] = useState<Language>("english");
+  const t = useTranslations("Test");
   const [showResult, setShowResult] = useState(false);
   const [result, setResult] = useState<{ 
     wpm: number; 
@@ -238,8 +240,8 @@ export default function TestPage() {
           <div className="flex items-center gap-3 sm:gap-6 font-mono text-xs sm:text-sm text-muted-foreground/70 tracking-wide overflow-x-auto flex-1 min-w-0 py-1">
             {/* Mode: Time / Words */}
             <div className="flex gap-3">
-              <button onClick={() => setMode("time")} className={`transition-all hover:text-foreground ${mode === "time" ? "text-primary font-bold drop-shadow-sm" : ""}`}>time</button>
-              <button onClick={() => setMode("words")} className={`transition-all hover:text-foreground ${mode === "words" ? "text-primary font-bold drop-shadow-sm" : ""}`}>words</button>
+              <button onClick={() => setMode("time")} className={`transition-all hover:text-foreground ${mode === "time" ? "text-primary font-bold drop-shadow-sm" : ""}`}>{t("modeTime")}</button>
+              <button onClick={() => setMode("words")} className={`transition-all hover:text-foreground ${mode === "words" ? "text-primary font-bold drop-shadow-sm" : ""}`}>{t("modeWords")}</button>
             </div>
 
             <Separator orientation="vertical" className="h-5 opacity-40" />
@@ -247,11 +249,11 @@ export default function TestPage() {
             {/* Options */}
             <div className="flex gap-3">
               {mode === "time"
-                ? TIME_OPTS.map((t) => (
-                    <button key={t} onClick={() => setTime(t)} className={`transition-all hover:text-foreground ${time === t ? "text-primary font-bold drop-shadow-sm" : ""}`}>{t}s</button>
+                ? TIME_OPTS.map((opt) => (
+                    <button key={opt} onClick={() => setTime(opt)} className={`transition-all hover:text-foreground ${time === opt ? "text-primary font-bold drop-shadow-sm" : ""}`}>{opt}s</button>
                   ))
-                : WORD_OPTS.map((w) => (
-                    <button key={w} onClick={() => setWords(w)} className={`transition-all hover:text-foreground ${words === w ? "text-primary font-bold drop-shadow-sm" : ""}`}>{w}</button>
+                : WORD_OPTS.map((opt) => (
+                    <button key={opt} onClick={() => setWords(opt)} className={`transition-all hover:text-foreground ${words === opt ? "text-primary font-bold drop-shadow-sm" : ""}`}>{opt}</button>
                   ))
               }
             </div>
@@ -260,11 +262,11 @@ export default function TestPage() {
 
             {/* Language */}
             <div className="flex gap-3">
-              <button onClick={() => setLang("english")} className={`transition-all hover:text-foreground uppercase ${lang === "english" ? "text-primary font-bold drop-shadow-sm" : ""}`}>en</button>
-              <button onClick={() => setLang("indonesian")} className={`transition-all hover:text-foreground uppercase ${lang === "indonesian" ? "text-primary font-bold drop-shadow-sm" : ""}`}>id</button>
-              <button onClick={() => setLang("spanish")} className={`transition-all hover:text-foreground uppercase ${lang === "spanish" ? "text-primary font-bold drop-shadow-sm" : ""}`}>es</button>
-              <button onClick={() => setLang("french")} className={`transition-all hover:text-foreground uppercase ${lang === "french" ? "text-primary font-bold drop-shadow-sm" : ""}`}>fr</button>
-              <button onClick={() => setLang("german")} className={`transition-all hover:text-foreground uppercase ${lang === "german" ? "text-primary font-bold drop-shadow-sm" : ""}`}>de</button>
+              <button onClick={() => setLang("english")} className={`transition-all hover:text-foreground uppercase ${lang === "english" ? "text-primary font-bold drop-shadow-sm" : ""}`}>{t("langEn")}</button>
+              <button onClick={() => setLang("indonesian")} className={`transition-all hover:text-foreground uppercase ${lang === "indonesian" ? "text-primary font-bold drop-shadow-sm" : ""}`}>{t("langId")}</button>
+              <button onClick={() => setLang("spanish")} className={`transition-all hover:text-foreground uppercase ${lang === "spanish" ? "text-primary font-bold drop-shadow-sm" : ""}`}>{t("langEs")}</button>
+              <button onClick={() => setLang("french")} className={`transition-all hover:text-foreground uppercase ${lang === "french" ? "text-primary font-bold drop-shadow-sm" : ""}`}>{t("langFr")}</button>
+              <button onClick={() => setLang("german")} className={`transition-all hover:text-foreground uppercase ${lang === "german" ? "text-primary font-bold drop-shadow-sm" : ""}`}>{t("langDe")}</button>
             </div>
           </div>
 
@@ -317,7 +319,7 @@ export default function TestPage() {
           <div className="relative w-full">
             {!stats.isStarted && !stats.isFinished && (
               <div className="absolute top-0 left-0 -mt-7 sm:-mt-8 text-primary/40 font-mono text-xs sm:text-sm flex items-center gap-2 animate-pulse w-full pointer-events-none">
-                <span className="opacity-50">~</span> <span className="text-foreground/30">❯</span> <span className="opacity-70">start typing...</span>
+                <span className="opacity-50">~</span> <span className="text-foreground/30">❯</span> <span className="opacity-70">{t("startTyping")}</span>
               </div>
             )}
             <div

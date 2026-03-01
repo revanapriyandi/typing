@@ -11,6 +11,7 @@ import { getLeaderboard, ScoreEntry } from "@/lib/firestore";
 import { formatDistanceToNow } from "date-fns";
 import { Trophy, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useTranslations } from "next-intl";
 
 type TF = "all" | "week" | "today";
 const MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
@@ -20,6 +21,7 @@ export default function LeaderboardPage() {
   const [df, setDf] = useState("all");
   const [scores, setScores] = useState<ScoreEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const t = useTranslations("Leaderboard");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -41,7 +43,7 @@ export default function LeaderboardPage() {
         <CardHeader className="flex flex-col sm:flex-row items-center justify-between pb-6 border-b border-border/40 bg-muted/10 gap-4">
           <div className="flex items-center gap-3 w-full sm:w-auto text-primary">
             <Trophy className="w-8 h-8" />
-            <CardTitle className="text-3xl font-black tracking-tight">Global Leaderboard</CardTitle>
+            <CardTitle className="text-3xl font-black tracking-tight">{t("title")}</CardTitle>
           </div>
           <Button
             variant="outline"
@@ -59,9 +61,9 @@ export default function LeaderboardPage() {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 px-4 sm:px-0 pt-6 sm:pt-0">
             <Tabs value={tf} onValueChange={(v) => setTf(v as TF)} className="w-full md:w-auto">
               <TabsList className="grid w-full grid-cols-3 md:flex h-12 rounded-xl p-1 bg-muted/50">
-                <TabsTrigger value="all" className="rounded-lg font-semibold">All Time</TabsTrigger>
-                <TabsTrigger value="week" className="rounded-lg font-semibold">This Week</TabsTrigger>
-                <TabsTrigger value="today" className="rounded-lg font-semibold">Today</TabsTrigger>
+                <TabsTrigger value="all" className="rounded-lg font-semibold">{t("allTime")}</TabsTrigger>
+                <TabsTrigger value="week" className="rounded-lg font-semibold">{t("thisWeek")}</TabsTrigger>
+                <TabsTrigger value="today" className="rounded-lg font-semibold">{t("today")}</TabsTrigger>
               </TabsList>
             </Tabs>
 
@@ -87,12 +89,12 @@ export default function LeaderboardPage() {
             <Table>
               <TableHeader className="bg-muted/20">
                 <TableRow className="hover:bg-transparent border-border/40">
-                  <TableHead className="w-20 text-center font-bold h-14">Rank</TableHead>
-                  <TableHead className="font-bold h-14">Typist</TableHead>
-                  <TableHead className="text-right font-bold h-14">WPM</TableHead>
-                  <TableHead className="text-right font-bold h-14 hidden sm:table-cell">Accuracy</TableHead>
+                  <TableHead className="w-20 text-center font-bold h-14">{t("tableRank")}</TableHead>
+                  <TableHead className="font-bold h-14">{t("tableUser")}</TableHead>
+                  <TableHead className="text-right font-bold h-14">{t("tableWpm")}</TableHead>
+                  <TableHead className="text-right font-bold h-14 hidden sm:table-cell">{t("tableAccuracy")}</TableHead>
                   <TableHead className="text-right font-bold h-14 hidden md:table-cell">Mode</TableHead>
-                  <TableHead className="text-right font-bold h-14 hidden lg:table-cell">Date</TableHead>
+                  <TableHead className="text-right font-bold h-14 hidden lg:table-cell">{t("tableDate")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

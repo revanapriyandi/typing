@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { RotateCcw, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { useTranslations, useLocale } from "next-intl";
 
 export interface TestResult {
   wpm: number;
@@ -28,6 +29,9 @@ interface ResultModalProps {
 
 export function ResultModal({ show, setShow, result, mode, lang, time, words, restart, getRating, calculatePercentile }: ResultModalProps) {
   const { user } = useAuth();
+  const t = useTranslations("Result");
+  const locale = useLocale();
+
   if (!result) return null;
 
   const topPercent = result.wpm ? (100 - calculatePercentile(result.wpm)).toFixed(result.wpm >= 140 ? 1 : 0) : null;
@@ -42,7 +46,7 @@ export function ResultModal({ show, setShow, result, mode, lang, time, words, re
 
           {/* Header */}
           <div>
-            <DialogTitle className="text-2xl sm:text-3xl font-black font-mono tracking-tighter">Test Complete</DialogTitle>
+            <DialogTitle className="text-2xl sm:text-3xl font-black font-mono tracking-tighter">{t("testComplete")}</DialogTitle>
             <div className="text-xs sm:text-sm font-mono text-muted-foreground uppercase opacity-70 tracking-widest mt-1">
               {mode === "time" ? `${time}s` : `${words} words`} • {lang}
             </div>
@@ -51,13 +55,13 @@ export function ResultModal({ show, setShow, result, mode, lang, time, words, re
           {/* Main Stats */}
           <div className="flex gap-8 sm:gap-20 justify-center w-full pt-2 pb-4 border-b border-border/30">
             <div className="flex flex-col items-center gap-1">
-              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-60">net wpm</span>
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-60">{t("netWpm")}</span>
               <span className="text-5xl sm:text-7xl font-black font-mono tracking-tighter bg-gradient-to-br from-primary to-primary/60 bg-clip-text text-transparent">
                 {result.wpm}
               </span>
             </div>
             <div className="flex flex-col items-center gap-1">
-              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-60">accuracy</span>
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-60">{t("accuracy")}</span>
               <span className="text-5xl sm:text-7xl font-black font-mono tracking-tighter opacity-90">
                 {result.accuracy}<span className="text-2xl sm:text-4xl opacity-50 ml-0.5">%</span>
               </span>
@@ -67,11 +71,11 @@ export function ResultModal({ show, setShow, result, mode, lang, time, words, re
           {/* Secondary Stats Grid */}
           <div className="w-full grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-4 bg-muted/20 rounded-xl p-3 sm:p-5 border border-border/30">
             <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">Raw</span>
+              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">{t("raw")}</span>
               <span className="text-lg sm:text-2xl font-black font-mono">{result.rawWpm}</span>
             </div>
             <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">Chars</span>
+              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">{t("chars")}</span>
               <span className="text-lg sm:text-2xl font-black font-mono">
                 <span className="text-emerald-500">{result.correctChars}</span>
                 <span className="opacity-40 mx-0.5">/</span>
@@ -79,17 +83,17 @@ export function ResultModal({ show, setShow, result, mode, lang, time, words, re
               </span>
             </div>
             <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">Time</span>
+              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">{t("time")}</span>
               <span className="text-lg sm:text-2xl font-black font-mono">{result.timeElapsed.toFixed(1)}s</span>
             </div>
             <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">Rank</span>
+              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">{t("rank")}</span>
               <span className="text-lg sm:text-2xl font-black font-mono text-amber-500">
-                {topPercent ? `Top ${topPercent}%` : 'N/A'}
+                {topPercent ? t("topPercent", { percent: topPercent }) : t("na")}
               </span>
             </div>
             <div className="flex flex-col items-center gap-0.5 col-span-3 sm:col-span-1">
-              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">Rating</span>
+              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">{t("rating")}</span>
               <span className={`text-lg sm:text-2xl font-black font-mono ${getRating(result.wpm).color}`}>
                 {getRating(result.wpm).text}
               </span>
@@ -100,12 +104,12 @@ export function ResultModal({ show, setShow, result, mode, lang, time, words, re
           <div className="flex flex-col sm:flex-row gap-3 w-full">
             <Button onClick={restart} size="lg" className="flex-1 font-bold gap-2 h-12 rounded-xl shadow-lg shadow-primary/20">
               <RotateCcw className="w-4 h-4" />
-              Try Again
+              {t("tryAgain")}
             </Button>
-            <Link href="/leaderboard" tabIndex={-1} className="flex-1">
+            <Link href={`/${locale}/leaderboard`} tabIndex={-1} className="flex-1">
               <Button variant="outline" size="lg" className="w-full font-bold gap-2 h-12 rounded-xl border-border/50">
                 <Trophy className="w-4 h-4 text-amber-500" />
-                Leaderboard
+                {t("leaderboard")}
               </Button>
             </Link>
           </div>
@@ -113,8 +117,8 @@ export function ResultModal({ show, setShow, result, mode, lang, time, words, re
           {/* Auth status footnote */}
           <p className="text-xs font-mono text-muted-foreground/60">
             {!user || user.isAnonymous
-              ? "Sign in to save your results to the global leaderboard."
-              : "✓ Score saved to your profile."}
+              ? t("loginToSave")
+              : t("scoreSaved")}
           </p>
         </div>
       </DialogContent>

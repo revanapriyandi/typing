@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
-import "./globals.css";
+import "../globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Navbar from "@/components/Navbar";
 import { Toaster } from "@/components/ui/sonner";
 
 import { DisableDevTools } from "@/components/DisableDevTools";
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages } from 'next-intl/server';
+import { notFound } from 'next/navigation';
 
 export const metadata: Metadata = {
   title: {
@@ -19,7 +22,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://typerush-app.web.app",
+    url: "https://type-rust.vercel.app",
     title: "TypeRush — Master Your Typing Speed",
     description: "Compete globally and verify your typing WPM with real-time analytics. Join TypeRush today!",
     siteName: "TypeRush",
@@ -42,21 +45,34 @@ export const metadata: Metadata = {
     apple: "/icon.png",
   },
   manifest: "/manifest.json",
-  metadataBase: new URL("https://typerush-app.web.app"),
+  metadataBase: new URL("https://type-rust.vercel.app"),
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({
+  children,
+  params
+}: {
+  children: React.ReactNode;
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  if (!['en', 'id'].includes(locale)) notFound();
+  
+  const messages = await getMessages();
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body>
-        <ThemeProvider>
-          <AuthProvider>
-            <DisableDevTools />
-            <Navbar />
-            <main className="pt-14 min-h-screen">{children}</main>
-            <Toaster position="bottom-right" richColors />
-          </AuthProvider>
-        </ThemeProvider>
+        <NextIntlClientProvider messages={messages} locale={locale}>
+          <ThemeProvider>
+            <AuthProvider>
+              <DisableDevTools />
+              <Navbar />
+              <main className="pt-14 min-h-screen">{children}</main>
+              <Toaster position="bottom-right" />
+            </AuthProvider>
+          </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

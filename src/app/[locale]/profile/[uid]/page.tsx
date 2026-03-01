@@ -11,6 +11,7 @@ import { getUserProfile, getUserScores, UserProfile, ScoreEntry } from "@/lib/fi
 import { ACHIEVEMENTS, RARITY_COLORS } from "@/lib/achievements";
 import { formatDistanceToNow } from "date-fns";
 import { Keyboard, Clock, Target, Zap, Medal } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 function StatCard({ value, label, icon: Icon }: { value: string | number; label: string, icon?: React.ElementType }) {
   return (
@@ -27,6 +28,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [scores, setScores] = useState<ScoreEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const t = useTranslations("Profile");
 
   useEffect(() => {
     if (!uid) return;
@@ -46,7 +48,7 @@ export default function ProfilePage() {
   if (!profile) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
       <UserNotFoundIcon className="w-16 h-16 text-muted-foreground/50" />
-      <p className="text-lg text-muted-foreground font-medium">Profile not found.</p>
+      <p className="text-lg text-muted-foreground font-medium">{t("notFound")}</p>
     </div>
   );
 
@@ -73,15 +75,15 @@ export default function ProfilePage() {
             </p>
             <Badge variant="secondary" className="mt-6 px-4 py-1.5 text-sm font-semibold rounded-full bg-primary/5 text-primary">
               <Medal className="w-4 h-4 mr-2 inline-flex" />
-              {unlocked.size} / {ACHIEVEMENTS.length} Achievements
+              {unlocked.size} / {ACHIEVEMENTS.length} {t("achievementsCount")}
             </Badge>
           </Card>
 
           <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 xl:gap-8 min-h-[300px]">
-            <StatCard value={profile.bestWpm || 0} label="Best WPM" icon={Zap} />
-            <StatCard value={avgWpm} label="Avg WPM" icon={Target} />
-            <StatCard value={profile.totalTests || 0} label="Tests Taken" icon={Keyboard} />
-            <StatCard value={`${totalMin}m`} label="Time Typed" icon={Clock} />
+            <StatCard value={profile.bestWpm || 0} label={t("bestWpm")} icon={Zap} />
+            <StatCard value={avgWpm} label={t("avgWpm")} icon={Target} />
+            <StatCard value={profile.totalTests || 0} label={t("testsTaken")} icon={Keyboard} />
+            <StatCard value={`${totalMin}m`} label={t("timeTyped")} icon={Clock} />
           </div>
         </div>
 
@@ -90,9 +92,9 @@ export default function ProfilePage() {
           <CardHeader className="border-b border-border/40 bg-muted/10 px-8 py-6">
             <div className="flex items-center gap-3">
               <Medal className="w-6 h-6 text-primary" />
-              <CardTitle className="text-2xl font-bold">Achievements Gallery</CardTitle>
+              <CardTitle className="text-2xl font-bold">{t("galleryTitle")}</CardTitle>
             </div>
-            <CardDescription className="text-base font-medium mt-1">Badges earned by completing typing milestones.</CardDescription>
+            <CardDescription className="text-base font-medium mt-1">{t("galleryDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="p-8">
             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-4">
@@ -134,7 +136,7 @@ export default function ProfilePage() {
           <CardHeader className="border-b border-border/40 bg-muted/10 px-8 py-6">
             <div className="flex items-center gap-3">
               <Clock className="w-6 h-6 text-primary" />
-              <CardTitle className="text-2xl font-bold">Recent Tests</CardTitle>
+              <CardTitle className="text-2xl font-bold">{t("recentTests")}</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="p-0 sm:p-2">
@@ -143,7 +145,7 @@ export default function ProfilePage() {
                 <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mb-6">
                   <Keyboard className="w-10 h-10 opacity-20" />
                 </div>
-                <p className="text-lg font-medium">No test history available.</p>
+                <p className="text-lg font-medium">{t("noHistory")}</p>
               </div>
             ) : (
               <div className="divide-y divide-border/40">
@@ -160,7 +162,7 @@ export default function ProfilePage() {
                       <Separator orientation="vertical" className="h-12 hidden sm:block opacity-50" />
                       <div className="flex flex-col">
                         <span className="text-2xl md:text-3xl font-black font-mono tabular-nums text-foreground/80">{s.accuracy}<span className="text-xl md:text-2xl opacity-50">%</span></span>
-                        <span className="text-xs uppercase text-muted-foreground font-bold tracking-widest mt-1">Accuracy</span>
+                        <span className="text-xs uppercase text-muted-foreground font-bold tracking-widest mt-1">{t("accuracy")}</span>
                       </div>
                     </div>
                     
