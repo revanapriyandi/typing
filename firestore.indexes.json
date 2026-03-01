@@ -20,7 +20,7 @@
       "collectionGroup": "scores",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "createdAt", "order": "DESCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" },
         { "fieldPath": "wpm", "order": "DESCENDING" }
       ]
     }
