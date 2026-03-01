@@ -91,7 +91,7 @@ export default function TestPage() {
       await updateUserStats(user.uid, wpm, mode === "time" ? time : 0);
       const profile = await getUserProfile(user.uid);
       if (profile) {
-        const newAchs = checkAchievements({ wpm, accuracy, totalTests: profile.totalTests + 1, unlockedAchievements: profile.achievements || [] }, new Date().getHours());
+        const newAchs = checkAchievements({ wpm, accuracy, totalTests: profile.totalTests + 1, unlockedAchievements: profile.achievements || [], duration: mode === "time" ? time : 0 }, new Date().getHours());
         if (newAchs.length) {
           await unlockAchievements(user.uid, newAchs);
           newAchs.forEach((id, i) => {

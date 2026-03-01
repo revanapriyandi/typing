@@ -5,9 +5,11 @@ import { useCallback, useEffect, useState, useRef } from 'react';
 export function useTypingSound() {
   const [isMuted, setIsMuted] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('typerush_muted') === 'true';
+      const saved = localStorage.getItem('typerush_muted');
+      // Default to muted (true) if no preference is saved
+      return saved === null ? true : saved === 'true';
     }
-    return false;
+    return true; // Server-side: always muted
   });
   const audioCtxRef = useRef<AudioContext | null>(null);
 

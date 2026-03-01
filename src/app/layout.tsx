@@ -5,6 +5,8 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import Navbar from "@/components/Navbar";
 import { Toaster } from "@/components/ui/sonner";
 
+import { DisableDevTools } from "@/components/DisableDevTools";
+
 export const metadata: Metadata = {
   title: "TypeRush — Online Typing Speed Test",
   description: "Test your typing speed, compete globally, and earn achievements with TypeRush.",
@@ -17,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeProvider>
           <AuthProvider>
+            <DisableDevTools />
             <Navbar />
             <main className="pt-14 min-h-screen">{children}</main>
             <Toaster position="bottom-right" richColors />
