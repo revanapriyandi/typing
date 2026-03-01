@@ -13,11 +13,15 @@ import { toast } from "sonner";
 import { Trophy, Clock, Users, Calendar, ArrowRight, ShieldAlert, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { useTranslations } from "next-intl";
-import { createTournament } from "@/lib/tournament";
+import { createTournament, deleteTournament } from "@/lib/tournament";
+import { useParams } from "next/navigation";
+import { Trash2 } from "lucide-react";
 
 export default function TournamentHub() {
   const { user } = useAuth();
   const router = useRouter();
+  const params = useParams();
+  const locale = params.locale as string;
   const t = useTranslations("Tournament");
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +51,7 @@ export default function TournamentHub() {
     }
     if (t.participants.some(p => p.uid === user.uid)) {
       toast.info("You are already registered.");
-      router.push(`/tournament/${t.id}`);
+      router.push(`/${locale}/tournament/${t.id}`);
       return;
     }
 
@@ -58,7 +62,7 @@ export default function TournamentHub() {
         photoURL: user.photoURL || ""
       });
       toast.success("Successfully registered for the tournament!");
-      router.push(`/tournament/${t.id}`);
+      router.push(`/${locale}/tournament/${t.id}`);
     } catch {
       toast.error("Failed to join tournament");
     }
@@ -78,6 +82,7 @@ export default function TournamentHub() {
         maxPlayers: parseInt(newMaxPlayers, 10),
         participants: [],
         prizePool: newPrize,
+        ownerUid: user?.uid,
         rundown: {
           quarterFinals: ms,
           semiFinals: ms + 600000,
@@ -160,10 +165,6 @@ export default function TournamentHub() {
                 </form>
               </DialogContent>
             </Dialog>
-
-            {tournaments.length === 0 && (
-              <Button variant="outline" onClick={handleAdminMock}><ShieldAlert className="w-4 h-4 mr-2" /> {t("generateMockBtn")}</Button>
-            )}
           </div>
         )}
       </div>
@@ -183,7 +184,24 @@ export default function TournamentHub() {
                       <CardTitle className="text-xl">{tourney.title}</CardTitle>
                       <CardDescription className="mt-1">{tourney.description}</CardDescription>
                     </div>
-                    <Badge variant="default" className="bg-primary/20 text-primary uppercase text-[10px] tracking-widest">{t("statusRegistration")}</Badge>
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge variant="default" className="bg-primary/20 text-primary uppercase text-[10px] tracking-widest">{t("statusRegistration")}</Badge>
+                      {user && tourney.ownerUid === user.uid && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm("Delete this tournament?")) {
+                              deleteTournament(tourney.id).then(() => toast.success("Tournament deleted"));
+                            }
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -213,7 +231,7 @@ export default function TournamentHub() {
                 </CardContent>
                 <CardFooter className="bg-muted/10 border-t border-border/30 pt-4">
                   {tourney.participants.some(p => p.uid === user?.uid) ? (
-                    <Button variant="secondary" className="w-full font-bold" onClick={() => router.push(`/tournament/${tourney.id}`)}>
+                    <Button variant="secondary" className="w-full font-bold" onClick={() => router.push(`/${locale}/tournament/${tourney.id}`)}>
                       {t("registeredBtn")}
                     </Button>
                   ) : tourney.participants.length >= tourney.maxPlayers ? (
@@ -239,12 +257,29 @@ export default function TournamentHub() {
                 <CardHeader>
                    <div className="flex justify-between items-center">
                      <CardTitle className="text-lg">{tData.title}</CardTitle>
-                     <Badge className="bg-emerald-500/20 text-emerald-500 uppercase tracking-widest text-[10px] animate-pulse">{t("statusActive")}</Badge>
+                     <div className="flex items-center gap-2">
+                       <Badge className="bg-emerald-500/20 text-emerald-500 uppercase tracking-widest text-[10px] animate-pulse">{t("statusActive")}</Badge>
+                       {user && tData.ownerUid === user.uid && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm("Delete this tournament?")) {
+                                deleteTournament(tData.id).then(() => toast.success("Tournament deleted"));
+                              }
+                            }}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                       )}
+                     </div>
                    </div>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">{tData.participants.length} Players currently competing in the brackets.</p>
-                  <Button variant="outline" className="w-full font-bold border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-500 transition-colors" onClick={() => router.push(`/tournament/${tData.id}`)}>
+                  <Button variant="outline" className="w-full font-bold border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-500 transition-colors" onClick={() => router.push(`/${locale}/tournament/${tData.id}`)}>
                     {t("spectateBtn")}
                   </Button>
                 </CardContent>
@@ -263,11 +298,26 @@ export default function TournamentHub() {
                 <CardHeader className="pb-2">
                    <div className="flex justify-between items-center">
                      <CardTitle className="text-base">{tData.title}</CardTitle>
+                     {user && tData.ownerUid === user.uid && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm("Delete this tournament?")) {
+                              deleteTournament(tData.id).then(() => toast.success("Tournament deleted"));
+                            }
+                          }}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                     )}
                    </div>
                    <CardDescription className="text-xs">{format(tData.startTime, "MMM d, yyyy")}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button variant="secondary" size="sm" className="w-full text-xs" onClick={() => router.push(`/tournament/${tData.id}`)}>
+                  <Button variant="secondary" size="sm" className="w-full text-xs" onClick={() => router.push(`/${locale}/tournament/${tData.id}`)}>
                     {t("viewBracketBtn")}
                   </Button>
                 </CardContent>

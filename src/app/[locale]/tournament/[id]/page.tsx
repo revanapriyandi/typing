@@ -24,6 +24,7 @@ export default function TournamentBracketPage({ params }: { params: Promise<{ id
   const { id } = use(params);
   const { user } = useAuth();
   const router = useRouter();
+  const locale = id.split('/')[0] === 'id' || id.split('/')[0] === 'en' ? id.split('/')[0] : 'en'; // Fallback logic or extract from params
 
   const [tourney, setTourney] = useState<Tournament | null>(null);
   const [bracket, setBracket] = useState<TournamentBracket | null>(null);
@@ -145,7 +146,7 @@ export default function TournamentBracketPage({ params }: { params: Promise<{ id
                     photoURL: user.photoURL || ""
                   });
                   toast.dismiss("join_match");
-                  router.push(`/multiplayer?room=${roomId}&tournamentId=${tourney.id}&stage=${stage}&matchId=${match.id}`);
+                  router.push(`/${locale}/multiplayer?room=${roomId}&tournamentId=${tourney.id}&stage=${stage}&matchId=${match.id}`);
                 } catch {
                   toast.dismiss("join_match");
                   toast.error("Failed to join match");
@@ -157,7 +158,7 @@ export default function TournamentBracketPage({ params }: { params: Promise<{ id
                   return;
                 }
                 toast.info("Entering Spectator Mode...");
-                router.push(`/multiplayer?room=${match.roomId}&spectate=true&tournamentId=${tourney.id}`);
+                router.push(`/${locale}/multiplayer?room=${match.roomId}&spectate=true&tournamentId=${tourney.id}`);
               }
             }}
           >
@@ -177,7 +178,7 @@ export default function TournamentBracketPage({ params }: { params: Promise<{ id
       
       {/* Header Bar */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.push("/tournament")}><ArrowLeft className="w-5 h-5" /></Button>
+        <Button variant="ghost" size="icon" onClick={() => router.push(`/${locale}/tournament`)}><ArrowLeft className="w-5 h-5" /></Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
              <h1 className="text-2xl sm:text-3xl font-black font-mono tracking-tight">{tourney.title}</h1>
