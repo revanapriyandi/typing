@@ -1,65 +1,185 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { ArrowRight, Trophy, Zap, Globe, Award, Keyboard } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+const DEMO_TEXT = "practice makes perfect when learning to type fast";
+
+const FEATURES = [
+  { icon: Zap,      color: "text-amber-500", title: "Live Feedback",      desc: "Instant metrics on your speed and precision as you type." },
+  { icon: Globe,    color: "text-blue-500",  title: "Leaderboards",     desc: "See how you stack up against typists worldwide." },
+  { icon: Award,    color: "text-purple-500", title: "Achievements",    desc: "Earn badges and track your progress over time." },
+  { icon: Keyboard, color: "text-emerald-500", title: "Customizable",  desc: "Choose between time or word limits in multiple languages." },
+];
+
+const BACKGROUND_WORDS = [
+  "const", "function", "return", "await", "async", "interface", "type", "import", "export", "class", 
+  "extends", "implements", "public", "private", "protected", "static", "readonly", "constructor",
+  "speed", "accuracy", "wpm", "keystroke", "practice", "focus", "flow", "rhythm", "muscle", "memory"
+];
+
+type AnimatedWord = { id: number; text: string; x: number; y: number; opacity: number; duration: number };
+
+function AnimatedBackground() {
+  const [words, setWords] = useState<AnimatedWord[]>([]);
+  
+  useEffect(() => {
+    let idCounter = 0;
+    const interval = setInterval(() => {
+      setWords(prev => {
+        const newWord = {
+          id: idCounter++,
+          text: BACKGROUND_WORDS[Math.floor(Math.random() * BACKGROUND_WORDS.length)],
+          x: Math.random() * 90, // Keep away from extreme edges
+          y: Math.random() * 90,
+          opacity: 0.02 + Math.random() * 0.04, // Very subtle opacity
+          duration: 4 + Math.random() * 5 // Slower, elegant fade
+        };
+        // Keep only top 15 words to prevent performance issues and clutter
+        return [...prev.slice(-14), newWord];
+      });
+    }, 800);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+      {words.map(w => (
+        <div
+          key={w.id}
+          className="absolute font-mono text-xl sm:text-3xl font-bold text-foreground transition-all ease-in-out select-none"
+          style={{
+            left: `${w.x}%`,
+            top: `${w.y}%`,
+            opacity: w.opacity,
+            animation: `fade-in-out ${w.duration}s forwards`,
+            "--target-opacity": w.opacity
+          } as React.CSSProperties}
+        >
+          {w.text}
+        </div>
+      ))}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fade-in-out {
+          0% { opacity: 0; transform: translateY(15px) scale(0.95); }
+          20% { opacity: var(--target-opacity, 0.05); transform: translateY(0) scale(1); }
+          80% { opacity: var(--target-opacity, 0.05); transform: translateY(-5px) scale(1); }
+          100% { opacity: 0; transform: translateY(-20px) scale(1.05); }
+        }
+      `}} />
+    </div>
+  );
+}
+
+export default function HomePage() {
+  const [idx, setIdx] = useState(0);
+  const [wpm, setWpm] = useState(0);
+  const wpmRef = useRef(0);
+  const t = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (idx >= DEMO_TEXT.length) {
+      t.current = setTimeout(() => { setIdx(0); wpmRef.current = 0; setWpm(0); }, 2200);
+      return;
+    }
+    t.current = setTimeout(() => {
+      setIdx((i) => i + 1);
+      wpmRef.current = Math.min(105, wpmRef.current + Math.random() * 6);
+      setWpm(Math.round(wpmRef.current));
+    }, 55 + Math.random() * 40);
+    return () => { if (t.current) clearTimeout(t.current); };
+  }, [idx]);
+
+  return (
+    <div className="flex flex-col min-h-[calc(100vh-64px)] w-full antialiased selection:bg-primary/20">
+
+      {/* ── HERO ── */}
+      <section className="flex flex-col items-center justify-center text-center px-4 md:px-8 py-20 md:py-32 gap-10 flex-1 relative bg-background overflow-hidden">
+        <AnimatedBackground />
+
+        {/* Headline */}
+        <div className="space-y-6 max-w-4xl relative z-10 pt-8">
+          <h1 className="text-5xl md:text-7xl font-black tracking-tight text-balance">
+            Find your typing <span className="text-primary italic relative">flow.</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-lg md:text-xl text-muted-foreground/80 max-w-2xl mx-auto text-balance font-medium leading-relaxed mt-6">
+            A minimalist space to practice your typing speed, build muscle memory, and track your progress.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* CTA */}
+        <div className="flex flex-wrap gap-4 justify-center relative z-10 mt-2">
+          <Button asChild size="lg" className="px-10 h-14 text-base font-semibold rounded-full shadow-md transition-all hover:scale-105">
+            <Link href="/test">
+              Start Typing
+              <ArrowRight className="ml-2 w-5 h-5" />
+            </Link>
+          </Button>
+          <Button asChild size="lg" variant="outline" className="px-10 h-14 text-base font-medium rounded-full bg-background hover:bg-muted shadow-sm transition-all hover:scale-105 border-border/50">
+            <Link href="/leaderboard">
+              <Trophy className="mr-2 w-5 h-5 opacity-70" /> Leaderboard
+            </Link>
+          </Button>
         </div>
-      </main>
+
+        {/* ── Demo window ── */}
+        <div className="w-full max-w-3xl mt-12 bg-background border border-border/60 rounded-xl relative z-10 overflow-hidden shadow-sm hover:shadow-md hover:border-border/80 transition-all">
+          {/* Title bar */}
+          <div className="flex items-center justify-between px-6 py-3 border-b border-border/40 bg-muted/20">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30" />
+              <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30" />
+              <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30" />
+            </div>
+            <span className="text-[10px] text-muted-foreground font-mono font-medium opacity-60 uppercase tracking-[0.2em]">
+              Preview
+            </span>
+            <div className="flex gap-4 text-right">
+              <div className="flex items-baseline gap-1">
+                <div className="font-mono font-bold text-sm text-foreground/70">{wpm}</div>
+                <div className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">wpm</div>
+              </div>
+            </div>
+          </div>
+          {/* Text */}
+          <div className="p-8 md:p-12 font-mono text-xl md:text-3xl leading-relaxed select-none text-left min-h-[140px] text-muted-foreground/30">
+            {DEMO_TEXT.split("").map((ch, i) => (
+              <span
+                key={i}
+                className={
+                  i < idx   ? "text-foreground opacity-100 transition-opacity"
+                  : i === idx ? "border-b-2 border-primary text-foreground"
+                  : "transition-opacity"
+                }
+              >{ch}</span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FEATURES ── */}
+      <section className="w-full px-4 md:px-8 py-20 border-t border-border/40 bg-zinc-50/50 dark:bg-zinc-950/50">
+        <div className="w-full max-w-[1400px] mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {FEATURES.map(({ icon: Icon, color, title, desc }) => (
+              <div key={title} className="p-6 rounded-2xl bg-background border border-border/50 shadow-sm hover:shadow-md transition-all group">
+                <div className={`w-12 h-12 rounded-xl mb-4 flex items-center justify-center bg-muted/50 transition-colors group-hover:bg-muted ${color}`}>
+                  <Icon className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold mb-2 tracking-tight">{title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <footer className="py-8 text-center text-sm text-muted-foreground bg-background border-t border-border/30">
+        <p>A minimalist typing experience.</p>
+      </footer>
     </div>
   );
 }
