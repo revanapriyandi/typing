@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { useTypingEngine } from "@/hooks/useTypingEngine";
-import { Users, Play, ArrowLeft, Link as LinkIcon, Globe, Send } from "lucide-react";
+import { Users, Play, ArrowLeft, ArrowRight, Link as LinkIcon, Globe, Send } from "lucide-react";
 import { Character } from "@/components/Character";
 import { useTranslations } from "next-intl";
 import {
@@ -202,51 +202,86 @@ function MultiplayerContent() {
 
   if (!roomId || !room) {
     return (
-      <div className="w-full max-w-2xl mx-auto px-4 py-12 flex flex-col gap-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-black font-mono tracking-tighter">{t("heroTitle")} <span className="text-primary">{t("heroAccent")}</span></h1>
-          <p className="text-muted-foreground">{t("heroDesc")}</p>
+      <div className="w-full max-w-4xl mx-auto px-4 py-12 flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-8 duration-500">
+        <div className="text-center space-y-4 mb-4">
+          <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-full mb-4 shadow-[0_0_30px_rgba(var(--primary),0.2)]">
+             <Globe className="w-8 h-8 text-primary" />
+          </div>
+          <h1 className="text-5xl md:text-6xl font-black font-mono tracking-tighter">{t("heroTitle")} <span className="bg-gradient-to-br from-indigo-500 via-primary to-purple-500 bg-clip-text text-transparent drop-shadow-sm">{t("heroAccent")}</span></h1>
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">{t("heroDesc")}</p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-          <Card className="bg-muted/30 border-border/40 backdrop-blur shadow-xl">
-            <CardHeader>
-              <CardTitle>Public Match</CardTitle>
-              <CardDescription>Join a random race instantly</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={handleMatchmake} className="w-full h-12 text-lg font-bold bg-indigo-600 hover:bg-indigo-700 text-white"><Globe className="w-5 h-5 mr-2"/> Find Match</Button>
-            </CardContent>
-          </Card>
+        <div className="max-w-3xl mx-auto w-full space-y-8 mt-4">
+          {/* Primary Action */}
+          <div 
+             onClick={handleMatchmake}
+             className="relative group cursor-pointer rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-indigo-500/25 border border-indigo-500/20"
+          >
+             <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 to-violet-800 opacity-90 group-hover:opacity-100 transition-opacity"></div>
+             {/* decorative blob */}
+             <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white opacity-10 blur-3xl transition-transform group-hover:scale-110 duration-500"></div>
+             <div className="relative p-8 md:p-12 flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div className="text-center sm:text-left">
+                   <h2 className="text-3xl font-black text-white mb-2 tracking-tight">Public Match</h2>
+                   <p className="text-indigo-100/80 text-lg">Jump into a random typing race against global players instantly.</p>
+                </div>
+                <div className="flex-shrink-0">
+                   <div className="h-16 px-8 bg-white text-indigo-900 font-bold text-lg rounded-full flex items-center justify-center gap-2 group-hover:bg-indigo-50 transition-colors shadow-lg">
+                      <Play className="w-6 h-6 fill-current" />
+                      Find Match
+                   </div>
+                </div>
+             </div>
+          </div>
 
-          <Card className="bg-muted/30 border-border/40 backdrop-blur shadow-xl">
-            <CardHeader>
-              <CardTitle>{t("createRoom")}</CardTitle>
-              <CardDescription>{t("createRoomDesc")}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={handleCreateRoom} className="w-full h-12 text-lg font-bold"><Play className="w-5 h-5 mr-2"/> {t("hostBtn")}</Button>
-            </CardContent>
-          </Card>
+          <div className="flex items-center gap-4 my-8 opacity-50">
+             <div className="h-px bg-border flex-1"></div>
+             <span className="font-mono text-sm uppercase tracking-widest font-bold">OR PRIVATE ROOMS</span>
+             <div className="h-px bg-border flex-1"></div>
+          </div>
 
-          <Card className="bg-muted/30 border-border/40 backdrop-blur shadow-xl">
-            <CardHeader>
-              <CardTitle>{t("joinRoom")}</CardTitle>
-              <CardDescription>{t("joinRoomDesc")}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleJoinSubmit} className="flex gap-2">
-                <Input 
-                  value={joinCode} 
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setJoinCode(e.target.value)} 
-                  placeholder={t("joinCodeParam")} 
-                  className="font-mono uppercase h-12 text-lg text-center"
-                  maxLength={6}
-                />
-                <Button type="submit" className="h-12 w-24"><Users className="w-5 h-5"/></Button>
-              </form>
-            </CardContent>
-          </Card>
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card className="bg-background/60 border-border/40 backdrop-blur-md shadow-lg hover:shadow-primary/5 transition-all duration-300 hover:-translate-y-1 overflow-hidden relative group">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <CardHeader className="relative">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 transition-transform group-hover:scale-110 duration-300">
+                   <Users className="w-6 h-6 text-primary" />
+                </div>
+                <CardTitle className="text-2xl">{t("createRoom")}</CardTitle>
+                <CardDescription className="text-base">{t("createRoomDesc")}</CardDescription>
+              </CardHeader>
+              <CardContent className="relative">
+                <Button variant="outline" onClick={handleCreateRoom} className="w-full h-14 text-base font-bold bg-background/50 border-primary/20 hover:bg-primary/10 hover:text-primary transition-colors hover:border-primary/40">
+                  <Play className="w-5 h-5 mr-2"/> {t("hostBtn")}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-background/60 border-border/40 backdrop-blur-md shadow-lg hover:shadow-primary/5 transition-all duration-300 hover:-translate-y-1 overflow-hidden relative group">
+              <div className="absolute inset-0 bg-gradient-to-bl from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <CardHeader className="relative">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 transition-transform group-hover:scale-110 duration-300">
+                   <LinkIcon className="w-6 h-6 text-primary" />
+                </div>
+                <CardTitle className="text-2xl">{t("joinRoom")}</CardTitle>
+                <CardDescription className="text-base">{t("joinRoomDesc")}</CardDescription>
+              </CardHeader>
+              <CardContent className="relative">
+                <form onSubmit={handleJoinSubmit} className="flex gap-2 relative">
+                  <Input 
+                    value={joinCode} 
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setJoinCode(e.target.value)} 
+                    placeholder={t("joinCodeParam")} 
+                    className="font-mono uppercase h-14 text-lg text-left pl-4 pr-16 bg-background/50 border-primary/20 focus-visible:ring-primary/40 focus-visible:border-primary/40 transition-all shadow-inner"
+                    maxLength={6}
+                  />
+                  <Button type="submit" className="absolute right-1 top-1 bottom-1 h-12 w-14 p-0 shadow-md">
+                    <ArrowRight className="w-6 h-6"/>
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     );
