@@ -186,7 +186,9 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
   const totalTyped = correctChars + incorrectChars;
   const wpm = timeMins > 0 ? Math.round((correctChars / 5) / timeMins) : 0;
   const rawWpm = timeMins > 0 ? Math.round((totalTyped / 5) / timeMins) : 0;
-  const accuracy = totalTyped > 0 ? Math.round((correctChars / totalTyped) * 100) : 100;
+  const accuracy = totalTyped > 0 
+    ? (incorrectChars === 0 ? 100 : Math.floor((correctChars / totalTyped) * 100)) 
+    : 100;
 
   const stats: TypingStats = {
     wpm,

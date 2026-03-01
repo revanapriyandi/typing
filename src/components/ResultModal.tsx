@@ -68,33 +68,33 @@ export function ResultModal({ show, setShow, result, mode, lang, time, words, re
             </div>
           </div>
 
-          {/* Secondary Stats Grid */}
-          <div className="w-full grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-4 bg-muted/20 rounded-xl p-3 sm:p-5 border border-border/30">
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">{t("raw")}</span>
-              <span className="text-lg sm:text-2xl font-black font-mono">{result.rawWpm}</span>
+          {/* Secondary Stats Flex */}
+          <div className="w-full flex flex-wrap justify-center sm:justify-between gap-y-6 gap-x-4 bg-muted/20 rounded-xl p-4 sm:p-6 border border-border/30">
+            <div className="flex flex-col items-center gap-1 min-w-[70px]">
+              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-80">{t("raw")}</span>
+              <span className="text-xl sm:text-2xl font-black font-mono tracking-tight">{result.rawWpm}</span>
             </div>
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">{t("chars")}</span>
-              <span className="text-lg sm:text-2xl font-black font-mono">
+            <div className="flex flex-col items-center gap-1 min-w-[90px]">
+              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-80">{t("chars")}</span>
+              <span className="text-xl sm:text-2xl font-black font-mono tracking-tight flex items-center gap-1">
                 <span className="text-emerald-500">{result.correctChars}</span>
-                <span className="opacity-40 mx-0.5">/</span>
+                <span className="opacity-40 font-light text-xl">/</span>
                 <span className="text-destructive">{result.incorrectChars}</span>
               </span>
             </div>
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">{t("time")}</span>
-              <span className="text-lg sm:text-2xl font-black font-mono">{result.timeElapsed.toFixed(1)}s</span>
+            <div className="flex flex-col items-center gap-1 min-w-[70px]">
+              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-80">{t("time")}</span>
+              <span className="text-xl sm:text-2xl font-black font-mono tracking-tight">{result.timeElapsed.toFixed(1)}s</span>
             </div>
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">{t("rank")}</span>
-              <span className="text-lg sm:text-2xl font-black font-mono text-amber-500">
+            <div className="flex flex-col items-center gap-1 min-w-[90px]">
+              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-80">{t("rank")}</span>
+              <span className="text-xl sm:text-2xl font-black font-mono tracking-tight text-amber-500">
                 {topPercent ? t("topPercent", { percent: topPercent }) : t("na")}
               </span>
             </div>
-            <div className="flex flex-col items-center gap-0.5 col-span-3 sm:col-span-1">
-              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">{t("rating")}</span>
-              <span className={`text-lg sm:text-2xl font-black font-mono ${getRating(result.wpm).color}`}>
+            <div className="flex flex-col items-center gap-1 min-w-[100px]">
+              <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-80">{t("rating")}</span>
+              <span className={`text-xl sm:text-2xl font-black font-mono tracking-tight ${getRating(result.wpm).color}`}>
                 {getRating(result.wpm).text}
               </span>
             </div>
