@@ -127,6 +127,9 @@
     "formDesc": "Deskripsi",
     "formPlayers": "Maksimal Pemain",
     "formPrize": "Total Hadiah",
-    "formStart": "Waktu Mulai"
+    "formStart": "Waktu Mulai",
+    "newCreated": "Turnamen Baru Dibuat!",
+    "newCreatedDesc": "{title} sekarang terbuka untuk pendaftaran.",
+    "viewLoc": "Lihat"
   }
 }

@@ -127,6 +127,9 @@
     "formDesc": "Description",
     "formPlayers": "Max Players",
     "formPrize": "Prize Pool",
-    "formStart": "Start Time"
+    "formStart": "Start Time",
+    "newCreated": "New Tournament Created!",
+    "newCreatedDesc": "{title} is now open for registration.",
+    "viewLoc": "View"
   }
 }

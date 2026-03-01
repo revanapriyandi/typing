@@ -13,6 +13,48 @@ import {
 import { Trophy, LogOut, User, Palette, Globe } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { listenToTournaments } from "@/lib/tournament";
+import { toast } from "sonner";
+
+function GlobalTournamentNotification() {
+  const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations("Tournament");
+
+  useEffect(() => {
+    let initialLoad = true;
+    const seenTournaments = new Set<string>();
+
+    const unsub = listenToTournaments((data) => {
+      if (initialLoad) {
+        data.forEach(t => seenTournaments.add(t.id));
+        initialLoad = false;
+        return;
+      }
+
+      data.forEach(tData => {
+        if (tData.status === "registration" && !seenTournaments.has(tData.id)) {
+          seenTournaments.add(tData.id);
+          
+          toast(`🏆 ${t("newCreated")}`, {
+            description: t("newCreatedDesc", { title: tData.title }),
+            action: {
+              label: t("viewLoc"),
+              onClick: () => router.push(`/${locale}/tournament`)
+            },
+            position: "top-center",
+            className: "border-2 border-amber-500 bg-background shadow-[0_0_50px_rgba(245,158,11,0.5)] p-6 rounded-2xl font-bold animate-in slide-in-from-top-10 zoom-in-95 duration-700",
+            duration: 10000,
+          });
+        }
+      });
+    });
+
+    return () => unsub();
+  }, [router, locale, t]);
+
+  return null;
+}
 
 function LanguageSwitcher() {
   const pathname = usePathname();
@@ -172,6 +214,7 @@ export default function Navbar() {
           )}
         </div>
       </div>
+      <GlobalTournamentNotification />
     </nav>
   );
 }
