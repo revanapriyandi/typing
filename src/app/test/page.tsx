@@ -1,35 +1,28 @@
 "use client";
 
-import { useState, useEffect, useRef, memo, forwardRef } from "react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useState, useEffect, useRef } from "react";
 import { useTypingEngine } from "@/hooks/useTypingEngine";
 import { useAuth } from "@/context/AuthContext";
 import { saveScore, updateUserStats, unlockAchievements, getUserProfile } from "@/lib/firestore";
 import { checkAchievements, ACHIEVEMENTS } from "@/lib/achievements";
 import { toast } from "sonner";
 import { Language } from "@/lib/words";
-import Link from "next/link";
-import { RotateCcw, Trophy, Maximize2, Minimize2, Volume2, VolumeX } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Maximize2, Minimize2, Volume2, VolumeX } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { ResultModal } from "@/components/ResultModal";
+import { Character } from "@/components/Character";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-// Memoized Character component to eliminate typing input lag!
-const Character = memo(forwardRef<HTMLSpanElement, { char: string, status: string, isCurrent: boolean }>(({ char, status, isCurrent }, ref) => {
-  return (
-    <span
-      ref={ref}
-      className={
-        status === "correct" ? "char-correct opacity-100 text-foreground"
-        : status === "incorrect" ? "char-incorrect text-destructive opacity-100 bg-destructive/20 rounded-sm"
-        : isCurrent ? "char-current bg-primary/20 text-primary border-b-[3px] border-primary cursor-blink rounded-sm"
-        : "char-pending opacity-40"
-      }
-    >
-      {char}
-    </span>
-  );
-}));
-Character.displayName = "Character";
+
 
 type TimeMode = 15 | 30 | 60 | 120;
 type WordMode = 25 | 50 | 75;
@@ -53,6 +46,7 @@ export default function TestPage() {
     timeElapsed: number; 
   } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showExitWarning, setShowExitWarning] = useState(false);
   const { user } = useAuth();
   const savedRef = useRef(false);
 
@@ -89,6 +83,28 @@ export default function TestPage() {
       setLang(langMap[browserLang]);
     }
   }, []);
+
+  const doSave = async (wpm: number, accuracy: number) => {
+    if (!user || user.isAnonymous) return;
+    try {
+      await saveScore({ uid: user.uid, displayName: user.displayName || "Anonymous", photoURL: user.photoURL || "", country: "Unknown", wpm, accuracy, duration: mode === "time" ? time : 0, mode: mode === "time" ? `${time}s` : `${words}w`, language: lang });
+      await updateUserStats(user.uid, wpm, mode === "time" ? time : 0);
+      const profile = await getUserProfile(user.uid);
+      if (profile) {
+        const newAchs = checkAchievements({ wpm, accuracy, totalTests: profile.totalTests + 1, unlockedAchievements: profile.achievements || [] }, new Date().getHours());
+        if (newAchs.length) {
+          await unlockAchievements(user.uid, newAchs);
+          newAchs.forEach((id, i) => {
+            const a = ACHIEVEMENTS.find((x) => x.id === id);
+            if (a) setTimeout(() => toast.success(`${a.icon} ${a.name}`, { description: a.description }), 800 + i * 500);
+          });
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to save score");
+    }
+  };
 
   useEffect(() => {
     if (stats.isFinished && !savedRef.current) {
@@ -132,27 +148,31 @@ export default function TestPage() {
     }
   };
 
-  const doSave = async (wpm: number, accuracy: number) => {
-    if (!user || user.isAnonymous) return;
-    try {
-      await saveScore({ uid: user.uid, displayName: user.displayName || "Anonymous", photoURL: user.photoURL || "", country: "Unknown", wpm, accuracy, duration: mode === "time" ? time : 0, mode: mode === "time" ? `${time}s` : `${words}w`, language: lang });
-      await updateUserStats(user.uid, wpm, mode === "time" ? time : 0);
-      const profile = await getUserProfile(user.uid);
-      if (profile) {
-        const newAchs = checkAchievements({ wpm, accuracy, totalTests: profile.totalTests + 1, unlockedAchievements: profile.achievements || [] }, new Date().getHours());
-        if (newAchs.length) {
-          await unlockAchievements(user.uid, newAchs);
-          newAchs.forEach((id, i) => {
-            const a = ACHIEVEMENTS.find((x) => x.id === id);
-            if (a) setTimeout(() => toast.success(`${a.icon} ${a.name}`, { description: a.description }), 800 + i * 500);
-          });
-        }
+  useEffect(() => {
+    // 1. Prevent accidental reload / tab close via browser's native dialog
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (stats.isStarted && !stats.isFinished) {
+        e.preventDefault();
+        e.returnValue = ""; // Required for Chrome
+        return ""; // Required for older browsers
       }
-    } catch (e) {
-      console.error(e);
-      toast.error("Failed to save score");
-    }
-  };
+    };
+
+    // 2. Detect tab switching (visibility change)
+    const handleVisibilityChange = () => {
+      if (document.hidden && stats.isStarted && !stats.isFinished) {
+        setShowExitWarning(true);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [stats.isStarted, stats.isFinished]);
 
   const restart = () => { 
     savedRef.current = false; 
@@ -332,94 +352,47 @@ export default function TestPage() {
         )}
       </div>
 
-      {/* ── Result Dialog (Redesigned & Fixed Width) ── */}
-      <Dialog open={showResult} onOpenChange={setShowResult}>
-        <DialogContent 
-           onOpenAutoFocus={(e) => e.preventDefault()}
-           className="max-w-3xl lg:max-w-4xl p-6 md:p-12 overflow-hidden border-border/40 shadow-2xl bg-background rounded-3xl"
-        >
-          <div className="flex flex-col items-center text-center">
-            
-            {/* Header */}
-            <DialogTitle className="text-3xl font-black font-mono tracking-tighter mb-2">Test Complete</DialogTitle>
-            <div className="text-sm font-mono text-muted-foreground uppercase opacity-80 tracking-widest mb-6">
-               {mode === "time" ? `${time}s` : `${words} words`} • {lang}
-            </div>
+      {/* ── Extracted Result Dialog ── */}
+      <ResultModal 
+        show={showResult} 
+        setShow={setShowResult} 
+        result={result} 
+        mode={mode} 
+        lang={lang} 
+        time={time} 
+        words={words} 
+        restart={restart} 
+        getRating={getRating} 
+        calculatePercentile={calculatePercentile} 
+      />
+      {/* ── Tab Switch Warning Dialog ── */}
+      <AlertDialog open={showExitWarning} onOpenChange={setShowExitWarning}>
+        <AlertDialogContent className="bg-background border-border/40 sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold flex items-center gap-2">
+              <span className="text-destructive">⚠️</span> Test Interrupted
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              You switched tabs or lost focus during an active typing test. Do you want to continue where you left off or restart the test?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel onClick={() => setShowExitWarning(false)} className="border-border/40">
+              Continue Test
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                setShowExitWarning(false);
+                restart();
+              }}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
+            >
+              Restart Session
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-            {/* Main Stats (WPM & Accuracy) - Removed flex wrap entirely, enforcing side-by-side with smaller fonts */}
-            <div className="flex flex-row justify-center items-center gap-12 sm:gap-24 w-full mb-10 border-b border-border/30 pb-10">
-               <div className="flex flex-col items-center flex-1 max-w-[200px]">
-                 <div className="text-sm font-bold text-muted-foreground uppercase tracking-[0.3em] mb-4 opacity-70">WPM</div>
-                 <div className="text-7xl sm:text-8xl md:text-9xl font-black font-mono text-primary leading-none tracking-tighter">
-                   {result?.wpm ?? 0}
-                 </div>
-               </div>
-               <div className="w-px h-24 bg-border/40 hidden sm:block"></div>
-               <div className="flex flex-col items-center flex-1 max-w-[200px]">
-                 <div className="text-sm font-bold text-muted-foreground uppercase tracking-[0.3em] mb-4 opacity-70">Accuracy</div>
-                 <div className="text-7xl sm:text-8xl md:text-9xl font-black font-mono text-foreground leading-none tracking-tighter flex items-start">
-                   {result?.accuracy ?? 0}<span className="text-3xl sm:text-4xl md:text-5xl opacity-40 mt-2">%</span>
-                 </div>
-               </div>
-            </div>
-
-            {/* Additional Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6 w-full p-6 bg-muted/30 rounded-2xl border border-border/50 mb-8 sm:mb-10 content-center justify-items-center">
-               <div className="flex flex-col items-center gap-1">
-                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">Rank</span>
-                 <span className="text-2xl font-black font-mono text-amber-500">
-                    {result?.wpm ? `Top ${(100 - calculatePercentile(result.wpm)).toFixed(result.wpm >= 140 ? 1 : 0)}%` : 'N/A'}
-                 </span>
-               </div>
-               <div className="flex flex-col items-center gap-1">
-                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">Raw WPM</span>
-                 <span className="text-2xl font-black font-mono">{result?.rawWpm ?? 0}</span>
-               </div>
-               <div className="flex flex-col items-center gap-1">
-                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">Chars</span>
-                 <div className="text-2xl font-black font-mono flex items-center gap-1">
-                   <span className="text-emerald-500">{result?.correctChars ?? 0}</span>
-                   <span className="opacity-30 text-xl">/</span>
-                   <span className="text-destructive">{result?.incorrectChars ?? 0}</span>
-                 </div>
-               </div>
-               <div className="flex flex-col items-center gap-1">
-                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">Time</span>
-                 <span className="text-2xl font-black font-mono">{result?.timeElapsed ? Math.floor(result.timeElapsed) : 0}s</span>
-               </div>
-               <div className="flex flex-col items-center gap-1 lg:col-span-1 col-span-2">
-                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">Rating</span>
-                 <span className={`text-xl font-black tracking-tight ${getRating(result?.wpm ?? 0).color}`}>
-                   {getRating(result?.wpm ?? 0).text.split(' ')[0]}
-                 </span>
-               </div>
-            </div>
-
-            {/* Save Status */}
-            {user && !user.isAnonymous ? (
-              <div className="text-emerald-500 font-bold text-sm tracking-wide mb-6">
-                ⭐ Score saved to global leaderboard
-              </div>
-            ) : (
-              <div className="text-amber-500 font-bold text-sm tracking-wide mb-6">
-                🔒 Sign in to save your scores globally
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
-               <Button onClick={restart} className="flex-1 h-14 rounded-xl text-lg font-bold shadow-sm" size="lg">
-                 <RotateCcw className="w-5 h-5 mr-2" /> Try Again <kbd className="hidden sm:inline-block ml-2 px-1.5 py-0.5 bg-background/20 rounded text-[10px] font-mono opacity-70">Tab</kbd>
-               </Button>
-               <Button asChild variant="outline" size="lg" className="flex-1 h-14 rounded-xl font-bold shadow-sm bg-background/50 hover:bg-background">
-                 <Link href="/leaderboard">
-                   <Trophy className="w-5 h-5 mr-2 text-primary" /> Leaderboard
-                 </Link>
-               </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
