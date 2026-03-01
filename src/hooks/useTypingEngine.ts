@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { generateParagraph, Language } from "@/lib/words";
+import { useTypingSound } from "./useTypingSound";
 
 export interface CharState {
   char: string;
@@ -10,6 +11,7 @@ export interface CharState {
 
 export interface TypingStats {
   wpm: number;
+  rawWpm: number;
   accuracy: number;
   timeLeft: number;
   timeElapsed: number;
@@ -24,11 +26,18 @@ interface UseTypingEngineProps {
   mode: "time" | "words";
   duration: number; // seconds for time mode, word count for word mode
   language: Language;
+  initialText?: string;
 }
 
-export function useTypingEngine({ mode, duration, language }: UseTypingEngineProps) {
-  const [text, setText] = useState<string>("");
-  const [chars, setChars] = useState<CharState[]>([]);
+export function useTypingEngine({ mode, duration, language, initialText }: UseTypingEngineProps) {
+  const [text, setText] = useState<string>(() => {
+    if (initialText) return initialText;
+    const wordCount = mode === "time" ? Math.ceil(duration * 0.9) : duration;
+    return generateParagraph(language, Math.max(wordCount, 60));
+  });
+  const [chars, setChars] = useState<CharState[]>(() => 
+    text.split("").map((c) => ({ char: c, status: "pending" }))
+  );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isStarted, setIsStarted] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
@@ -39,9 +48,14 @@ export function useTypingEngine({ mode, duration, language }: UseTypingEnginePro
   const startTimeRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
 
+  const { playClick, isMuted, toggleMute } = useTypingSound();
+
   const initTest = useCallback(() => {
-    const wordCount = mode === "time" ? Math.ceil(duration * 0.9) : duration;
-    const newText = generateParagraph(language, Math.max(wordCount, 60));
+    let newText = initialText;
+    if (!newText) {
+      const wordCount = mode === "time" ? Math.ceil(duration * 0.9) : duration;
+      newText = generateParagraph(language, Math.max(wordCount, 60));
+    }
     setText(newText);
     setChars(newText.split("").map((c) => ({ char: c, status: "pending" })));
     setCurrentIndex(0);
@@ -53,11 +67,9 @@ export function useTypingEngine({ mode, duration, language }: UseTypingEnginePro
     setIncorrectChars(0);
     startTimeRef.current = null;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-  }, [mode, duration, language]);
+  }, [mode, duration, language, initialText]);
 
-  useEffect(() => {
-    initTest();
-  }, [initTest]);
+  // Initialize test handled by lazy state initialization and manual reset calls from consumer Components
 
   useEffect(() => {
     if (!isStarted || isFinished) return;
@@ -104,6 +116,7 @@ export function useTypingEngine({ mode, duration, language }: UseTypingEnginePro
       setChars((prev) => {
         const next = [...prev];
         if (e.key === "Backspace") {
+          playClick();
           if (currentIndex > 0) {
             const prevIdx = currentIndex - 1;
             if (next[prevIdx].status === "incorrect") {
@@ -122,8 +135,13 @@ export function useTypingEngine({ mode, duration, language }: UseTypingEnginePro
         const isCorrect = e.key === text[currentIndex];
         next[currentIndex] = { ...next[currentIndex], status: isCorrect ? "correct" : "incorrect" };
 
-        if (isCorrect) setCorrectChars((c) => c + 1);
-        else setIncorrectChars((c) => c + 1);
+        if (isCorrect) {
+          setCorrectChars((c) => c + 1);
+          playClick();
+        } else {
+          setIncorrectChars((c) => c + 1);
+          playClick(true);
+        }
 
         const nextIdx = currentIndex + 1;
         setCurrentIndex(nextIdx);
@@ -134,7 +152,7 @@ export function useTypingEngine({ mode, duration, language }: UseTypingEnginePro
         return next;
       });
     },
-    [isFinished, isStarted, currentIndex, text, mode, initTest]
+    [isFinished, isStarted, currentIndex, text, mode, initTest, playClick]
   );
 
   useEffect(() => {
@@ -142,15 +160,20 @@ export function useTypingEngine({ mode, duration, language }: UseTypingEnginePro
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  const wpm = timeElapsed > 0 ? Math.round((correctChars / 5) / (timeElapsed / 60)) : 0;
+  const actualTime = isFinished && mode === "time" ? duration : timeElapsed;
+  const timeMins = actualTime > 0 ? actualTime / 60 : 0;
+
   const totalTyped = correctChars + incorrectChars;
+  const wpm = timeMins > 0 ? Math.round((correctChars / 5) / timeMins) : 0;
+  const rawWpm = timeMins > 0 ? Math.round((totalTyped / 5) / timeMins) : 0;
   const accuracy = totalTyped > 0 ? Math.round((correctChars / totalTyped) * 100) : 100;
 
   const stats: TypingStats = {
     wpm,
+    rawWpm,
     accuracy,
     timeLeft,
-    timeElapsed,
+    timeElapsed: actualTime,
     isFinished,
     isStarted,
     correctChars,
@@ -158,5 +181,5 @@ export function useTypingEngine({ mode, duration, language }: UseTypingEnginePro
     totalTyped,
   };
 
-  return { chars, currentIndex, stats, reset: initTest };
+  return { chars, currentIndex, stats, reset: initTest, isMuted, toggleMute };
 }

@@ -16,8 +16,11 @@ function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   
-  // eslint-disable-next-line react-compiler/react-compiler
-  useEffect(() => { setMounted(true); }, []);
+  // Defer state update to next tick to avoid React Compiler synchronous effect warning
+  useEffect(() => { 
+    const t = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(t);
+  }, []);
   
   if (!mounted) return <Button variant="ghost" size="icon" className="w-9 h-9" disabled />;
   
@@ -42,8 +45,7 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-border/40 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
       <div className="w-full h-full px-4 md:px-8 flex items-center justify-between">
 
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-1.5 group">
+        <Link href="/" className="flex items-center gap-1.5 group mr-8">
           <span className="font-bold text-lg tracking-tight">
             type
           </span>
@@ -54,7 +56,11 @@ export default function Navbar() {
 
         {/* Center links */}
         <div className="hidden sm:flex items-center gap-6">
-          {[{ href: "/test", label: "Test" }, { href: "/leaderboard", label: "Leaderboard" }].map(({ href, label }) => (
+          {[
+            { href: "/test", label: "Solo" }, 
+            { href: "/multiplayer", label: "Multiplayer" },
+            { href: "/leaderboard", label: "Leaderboard" }
+          ].map(({ href, label }) => (
             <Link
               key={href}
               href={href}

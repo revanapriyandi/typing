@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState, useEffect, useRef, memo, forwardRef } from "react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useTypingEngine } from "@/hooks/useTypingEngine";
 import { useAuth } from "@/context/AuthContext";
 import { saveScore, updateUserStats, unlockAchievements, getUserProfile } from "@/lib/firestore";
@@ -9,9 +9,27 @@ import { checkAchievements, ACHIEVEMENTS } from "@/lib/achievements";
 import { toast } from "sonner";
 import { Language } from "@/lib/words";
 import Link from "next/link";
-import { RotateCcw, Trophy, Maximize2, Minimize2 } from "lucide-react";
+import { RotateCcw, Trophy, Maximize2, Minimize2, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+
+// Memoized Character component to eliminate typing input lag!
+const Character = memo(forwardRef<HTMLSpanElement, { char: string, status: string, isCurrent: boolean }>(({ char, status, isCurrent }, ref) => {
+  return (
+    <span
+      ref={ref}
+      className={
+        status === "correct" ? "char-correct opacity-100 text-foreground"
+        : status === "incorrect" ? "char-incorrect text-destructive opacity-100 bg-destructive/20 rounded-sm"
+        : isCurrent ? "char-current bg-primary/20 text-primary border-b-[3px] border-primary cursor-blink rounded-sm"
+        : "char-pending opacity-40"
+      }
+    >
+      {char}
+    </span>
+  );
+}));
+Character.displayName = "Character";
 
 type TimeMode = 15 | 30 | 60 | 120;
 type WordMode = 25 | 50 | 75;
@@ -26,7 +44,14 @@ export default function TestPage() {
   const [words, setWords] = useState<WordMode>(25);
   const [lang, setLang] = useState<Language>("english");
   const [showResult, setShowResult] = useState(false);
-  const [result, setResult] = useState<{ wpm: number; accuracy: number } | null>(null);
+  const [result, setResult] = useState<{ 
+    wpm: number; 
+    rawWpm: number; 
+    accuracy: number; 
+    correctChars: number; 
+    incorrectChars: number; 
+    timeElapsed: number; 
+  } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const { user } = useAuth();
   const savedRef = useRef(false);
@@ -36,7 +61,13 @@ export default function TestPage() {
   const terminalBodyRef = useRef<HTMLDivElement>(null);
 
   const dur = mode === "time" ? time : words;
-  const { chars, currentIndex, stats, reset } = useTypingEngine({ mode, duration: dur, language: lang });
+  const { chars, currentIndex, stats, reset, isMuted, toggleMute } = useTypingEngine({ mode, duration: dur, language: lang });
+
+  // Prevent hydration mismatch on audio toggle
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (activeCharRef.current) {
@@ -62,7 +93,14 @@ export default function TestPage() {
   useEffect(() => {
     if (stats.isFinished && !savedRef.current) {
       savedRef.current = true;
-      setResult({ wpm: stats.wpm, accuracy: stats.accuracy });
+      setResult({ 
+        wpm: stats.wpm, 
+        rawWpm: stats.rawWpm, 
+        accuracy: stats.accuracy,
+        correctChars: stats.correctChars,
+        incorrectChars: stats.incorrectChars,
+        timeElapsed: stats.timeElapsed
+      });
       setShowResult(true);
       doSave(stats.wpm, stats.accuracy);
     }
@@ -130,11 +168,24 @@ export default function TestPage() {
     : (currentIndex / Math.max(1, chars.length)) * 100;
 
   const getRating = (wpm: number) => {
-    if (wpm >= 130) return { text: "Transcendent 🔥", color: "text-amber-500" };
-    if (wpm >= 100) return { text: "Century Typer 💯", color: "text-red-500" };
-    if (wpm >= 75)  return { text: "Speed Demon ⚡", color: "text-purple-500" };
-    if (wpm >= 50)  return { text: "Getting Fast 🚀", color: "text-blue-500" };
-    return { text: "Keep Practicing 🌱", color: "text-emerald-500" };
+    if (wpm >= 140) return { text: "Grandmaster", color: "text-amber-500" };
+    if (wpm >= 100) return { text: "Expert", color: "text-red-500" };
+    if (wpm >= 80)  return { text: "Advanced", color: "text-purple-500" };
+    if (wpm >= 60)  return { text: "Proficient", color: "text-blue-500" };
+    if (wpm >= 40)  return { text: "Intermediate", color: "text-emerald-500" };
+    return { text: "Novice", color: "text-muted-foreground" };
+  };
+
+  // Based on real-world global typing distributions
+  const calculatePercentile = (wpm: number) => {
+    if (wpm >= 140) return 99.9;
+    if (wpm >= 120) return 99 + ((wpm - 120) / 20) * 0.9;
+    if (wpm >= 100) return 96 + ((wpm - 100) / 20) * 3;
+    if (wpm >= 80)  return 90 + ((wpm - 80) / 20) * 6;
+    if (wpm >= 60)  return 75 + ((wpm - 60) / 20) * 15;
+    if (wpm >= 40)  return 50 + ((wpm - 40) / 20) * 25;
+    if (wpm >= 20)  return 10 + ((wpm - 20) / 20) * 40;
+    return Math.max(1, (wpm / 20) * 10);
   };
 
   return (
@@ -203,6 +254,13 @@ export default function TestPage() {
                bash
             </div>
             <button 
+              onClick={toggleMute} 
+              className="text-muted-foreground hover:text-foreground opacity-50 hover:opacity-100 transition-opacity ml-2" 
+              title="Toggle Sound"
+            >
+              {mounted ? (isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />) : <Volume2 className="w-4 h-4 opacity-0" />}
+            </button>
+            <button 
               onClick={toggleFullscreen} 
               className="text-muted-foreground hover:text-foreground opacity-50 hover:opacity-100 transition-opacity" 
               title="Toggle Fullscreen"
@@ -248,18 +306,13 @@ export default function TestPage() {
               tabIndex={0}
             >
             {chars.map((c, i) => (
-              <span
-                key={i}
+              <Character 
+                key={i} 
                 ref={i === currentIndex ? activeCharRef : null}
-                className={
-                  i < currentIndex
-                    ? c.status === "correct" ? "char-correct opacity-100" : "char-incorrect text-destructive opacity-100 underline decoration-destructive/50"
-                    : i === currentIndex ? "char-current border-b-2 border-primary cursor-blink"
-                    : "char-pending opacity-40"
-                }
-              >
-                {c.char}
-              </span>
+                char={c.char} 
+                status={c.status} 
+                isCurrent={i === currentIndex} 
+              />
             ))}
             </div>
           </div>
@@ -279,45 +332,90 @@ export default function TestPage() {
         )}
       </div>
 
-      {/* ── Result Dialog ── */}
+      {/* ── Result Dialog (Redesigned & Fixed Width) ── */}
       <Dialog open={showResult} onOpenChange={setShowResult}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden border-border/40 shadow-2xl rounded-2xl">
-          <DialogHeader className="p-8 pb-4 border-b border-border/40 bg-muted/10">
-            <DialogTitle className="text-2xl font-black text-center tracking-tight">Test Complete</DialogTitle>
-            {result && <p className={`text-center font-bold text-lg pb-2 mt-2 ${getRating(result.wpm).color}`}>{getRating(result.wpm).text}</p>}
-          </DialogHeader>
-          
-          <div className="p-10 flex flex-col items-center gap-10 bg-background/50 backdrop-blur-xl">
-            <div className="flex items-center justify-center gap-16 w-full">
-              <div className="text-center">
-                <div className="text-6xl md:text-8xl font-black font-mono text-primary tracking-tighter drop-shadow-sm">
-                  {result?.wpm ?? 0}
-                </div>
-                <div className="text-sm uppercase tracking-widest text-muted-foreground font-bold mt-3">wpm</div>
-              </div>
-              <Separator orientation="vertical" className="h-24 md:h-32 opacity-50" />
-              <div className="text-center">
-                <div className="text-6xl md:text-8xl font-black font-mono tracking-tighter text-muted-foreground drop-shadow-sm">
-                  {result?.accuracy ?? 0}<span className="text-4xl md:text-5xl opacity-50">%</span>
-                </div>
-                <div className="text-sm uppercase tracking-widest text-muted-foreground font-bold mt-3">accuracy</div>
-              </div>
+        <DialogContent 
+           onOpenAutoFocus={(e) => e.preventDefault()}
+           className="max-w-3xl lg:max-w-4xl p-6 md:p-12 overflow-hidden border-border/40 shadow-2xl bg-background rounded-3xl"
+        >
+          <div className="flex flex-col items-center text-center">
+            
+            {/* Header */}
+            <DialogTitle className="text-3xl font-black font-mono tracking-tighter mb-2">Test Complete</DialogTitle>
+            <div className="text-sm font-mono text-muted-foreground uppercase opacity-80 tracking-widest mb-6">
+               {mode === "time" ? `${time}s` : `${words} words`} • {lang}
             </div>
 
-            <div className="text-sm md:text-base font-medium text-center text-muted-foreground bg-muted/30 px-6 py-3 rounded-xl border border-border/50 w-full shadow-sm">
-              <span className="text-foreground">{mode === "time" ? `${time} seconds` : `${words} words`}</span> <span className="opacity-50 mx-2">•</span> {lang}
-              {user && !user.isAnonymous && <span className="text-emerald-500 font-bold ml-2"> <span className="opacity-50 mx-2">•</span> Saved ✓</span>}
+            {/* Main Stats (WPM & Accuracy) - Removed flex wrap entirely, enforcing side-by-side with smaller fonts */}
+            <div className="flex flex-row justify-center items-center gap-12 sm:gap-24 w-full mb-10 border-b border-border/30 pb-10">
+               <div className="flex flex-col items-center flex-1 max-w-[200px]">
+                 <div className="text-sm font-bold text-muted-foreground uppercase tracking-[0.3em] mb-4 opacity-70">WPM</div>
+                 <div className="text-7xl sm:text-8xl md:text-9xl font-black font-mono text-primary leading-none tracking-tighter">
+                   {result?.wpm ?? 0}
+                 </div>
+               </div>
+               <div className="w-px h-24 bg-border/40 hidden sm:block"></div>
+               <div className="flex flex-col items-center flex-1 max-w-[200px]">
+                 <div className="text-sm font-bold text-muted-foreground uppercase tracking-[0.3em] mb-4 opacity-70">Accuracy</div>
+                 <div className="text-7xl sm:text-8xl md:text-9xl font-black font-mono text-foreground leading-none tracking-tighter flex items-start">
+                   {result?.accuracy ?? 0}<span className="text-3xl sm:text-4xl md:text-5xl opacity-40 mt-2">%</span>
+                 </div>
+               </div>
             </div>
-            
-            <div className="flex gap-4 w-full mt-2">
-              <Button onClick={restart} className="flex-1 h-14 rounded-xl text-lg font-semibold shadow-sm hover:scale-[1.02] transition-transform" size="lg">
-                <RotateCcw className="w-5 h-5 mr-2" /> Try Again
-              </Button>
-              <Button asChild variant="secondary" size="lg" className="h-14 px-8 rounded-xl shadow-sm hover:scale-[1.02] transition-transform">
-                <Link href="/leaderboard">
-                  <Trophy className="w-5 h-5" />
-                </Link>
-              </Button>
+
+            {/* Additional Stats Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6 w-full p-6 bg-muted/30 rounded-2xl border border-border/50 mb-8 sm:mb-10 content-center justify-items-center">
+               <div className="flex flex-col items-center gap-1">
+                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">Rank</span>
+                 <span className="text-2xl font-black font-mono text-amber-500">
+                    {result?.wpm ? `Top ${(100 - calculatePercentile(result.wpm)).toFixed(result.wpm >= 140 ? 1 : 0)}%` : 'N/A'}
+                 </span>
+               </div>
+               <div className="flex flex-col items-center gap-1">
+                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">Raw WPM</span>
+                 <span className="text-2xl font-black font-mono">{result?.rawWpm ?? 0}</span>
+               </div>
+               <div className="flex flex-col items-center gap-1">
+                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">Chars</span>
+                 <div className="text-2xl font-black font-mono flex items-center gap-1">
+                   <span className="text-emerald-500">{result?.correctChars ?? 0}</span>
+                   <span className="opacity-30 text-xl">/</span>
+                   <span className="text-destructive">{result?.incorrectChars ?? 0}</span>
+                 </div>
+               </div>
+               <div className="flex flex-col items-center gap-1">
+                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">Time</span>
+                 <span className="text-2xl font-black font-mono">{result?.timeElapsed ? Math.floor(result.timeElapsed) : 0}s</span>
+               </div>
+               <div className="flex flex-col items-center gap-1 lg:col-span-1 col-span-2">
+                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider opacity-70">Rating</span>
+                 <span className={`text-xl font-black tracking-tight ${getRating(result?.wpm ?? 0).color}`}>
+                   {getRating(result?.wpm ?? 0).text.split(' ')[0]}
+                 </span>
+               </div>
+            </div>
+
+            {/* Save Status */}
+            {user && !user.isAnonymous ? (
+              <div className="text-emerald-500 font-bold text-sm tracking-wide mb-6">
+                ⭐ Score saved to global leaderboard
+              </div>
+            ) : (
+              <div className="text-amber-500 font-bold text-sm tracking-wide mb-6">
+                🔒 Sign in to save your scores globally
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+               <Button onClick={restart} className="flex-1 h-14 rounded-xl text-lg font-bold shadow-sm" size="lg">
+                 <RotateCcw className="w-5 h-5 mr-2" /> Try Again <kbd className="hidden sm:inline-block ml-2 px-1.5 py-0.5 bg-background/20 rounded text-[10px] font-mono opacity-70">Tab</kbd>
+               </Button>
+               <Button asChild variant="outline" size="lg" className="flex-1 h-14 rounded-xl font-bold shadow-sm bg-background/50 hover:bg-background">
+                 <Link href="/leaderboard">
+                   <Trophy className="w-5 h-5 mr-2 text-primary" /> Leaderboard
+                 </Link>
+               </Button>
             </div>
           </div>
         </DialogContent>
