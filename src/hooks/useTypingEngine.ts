@@ -30,9 +30,10 @@ interface UseTypingEngineProps {
   language: Language;
   initialText?: string;
   customText?: string;
+  keyListenerTarget?: "window" | "manual";
 }
 
-export function useTypingEngine({ mode, duration, language, initialText, customText }: UseTypingEngineProps) {
+export function useTypingEngine({ mode, duration, language, initialText, customText, keyListenerTarget = "window" }: UseTypingEngineProps) {
   const [text, setText] = useState<string>(() => {
     if (initialText) return initialText;
     const wordCount = mode === "time" ? Math.ceil(duration * 0.9) : duration;
@@ -103,6 +104,14 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (isFinished) return;
+
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName.toLowerCase();
+        const isEditable = target.isContentEditable || tag === "input" || tag === "textarea";
+        if (isEditable) return;
+      }
+
       if (e.key === "Tab") {
         e.preventDefault();
         initTest();
@@ -176,9 +185,10 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
   );
 
   useEffect(() => {
+    if (keyListenerTarget !== "window") return;
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
+  }, [handleKeyDown, keyListenerTarget]);
 
   const actualTime = isFinished && mode === "time" ? duration : timeElapsed;
   const timeMins = actualTime > 0 ? actualTime / 60 : 0;
@@ -205,5 +215,5 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
     keystrokes,
   };
 
-  return { chars, currentIndex, stats, reset: initTest, isMuted, toggleMute };
+  return { chars, currentIndex, stats, reset: initTest, isMuted, toggleMute, handleKeyDown };
 }
