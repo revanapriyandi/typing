@@ -30,9 +30,10 @@ interface UseTypingEngineProps {
   language: Language;
   initialText?: string;
   customText?: string;
+  keyListenerTarget?: "window" | "manual";
 }
 
-export function useTypingEngine({ mode, duration, language, initialText, customText }: UseTypingEngineProps) {
+export function useTypingEngine({ mode, duration, language, initialText, customText, keyListenerTarget = "window" }: UseTypingEngineProps) {
   const [text, setText] = useState<string>(() => {
     if (initialText) return initialText;
     const wordCount = mode === "time" ? Math.ceil(duration * 0.9) : duration;
@@ -46,10 +47,12 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
   const [isFinished, setIsFinished] = useState(false);
   const [timeLeft, setTimeLeft] = useState(mode === "time" ? duration : 0);
   const [timeElapsed, setTimeElapsed] = useState(0);
+  const [finishedTimeSeconds, setFinishedTimeSeconds] = useState<number | null>(null);
   const [correctChars, setCorrectChars] = useState(0);
   const [incorrectChars, setIncorrectChars] = useState(0);
   const [isComposing, setIsComposing] = useState(false);
   const startTimeRef = useRef<number | null>(null);
+  const finishTimeRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
   const isComposingRef = useRef(false);
   const currentIndexRef = useRef(0);
@@ -73,6 +76,7 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
     setIsFinished(false);
     setTimeLeft(mode === "time" ? duration : 0);
     setTimeElapsed(0);
+    setFinishedTimeSeconds(null);
     setCorrectChars(0);
     setIncorrectChars(0);
     setIsComposing(false);
@@ -83,6 +87,7 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
     currentIndexRef.current = 0;
     pendingCompositionTextRef.current = null;
     skipNextCompositionInputRef.current = false;
+    finishTimeRef.current = null;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
   }, [mode, duration, language, initialText, customText]);
 
@@ -98,6 +103,11 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
         const left = Math.max(0, duration - elapsed);
         setTimeLeft(left);
         if (left <= 0) {
+          const finishMs = startTimeRef.current ? Date.now() - startTimeRef.current : 0;
+          finishTimeRef.current = finishMs;
+          setTimeElapsed(finishMs / 1000);
+          setFinishedTimeSeconds(finishMs / 1000);
+          setTimeLeft(0);
           setIsFinished(true);
           return;
         }
@@ -110,9 +120,35 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
     };
   }, [isStarted, isFinished, mode, duration]);
 
-  useEffect(() => {
-    currentIndexRef.current = currentIndex;
-  }, [currentIndex]);
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (isFinished) return;
+
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName.toLowerCase();
+        const isEditable = target.isContentEditable || tag === "input" || tag === "textarea";
+        if (isEditable) return;
+      }
+
+      if (e.key === "Tab") {
+        e.preventDefault();
+        initTest();
+        return;
+      }
+      if (e.key === "Escape") {
+        initTest();
+        return;
+      }
+      if (e.key.length !== 1 && e.key !== "Backspace") return;
+      if (e.key === " ") e.preventDefault();
+
+      if (!isStarted && e.key.length === 1) {
+        setIsStarted(true);
+        startTimeRef.current = Date.now();
+        finishTimeRef.current = null;
+        setFinishedTimeSeconds(null);
+      }
 
   const applyInput = useCallback((input: string) => {
     if (!input || isFinished) return;
@@ -271,6 +307,7 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
   }, [isFinished, applyInput]);
 
   useEffect(() => {
+    if (keyListenerTarget !== "window") return;
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("compositionstart", handleCompositionStart);
     window.addEventListener("compositionupdate", handleCompositionUpdate);
@@ -287,7 +324,9 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
     };
   }, [handleKeyDown, handleCompositionStart, handleCompositionUpdate, handleCompositionEnd, handleBeforeInput, handleInput]);
 
-  const actualTime = isFinished && mode === "time" ? duration : timeElapsed;
+  const actualTime = isFinished && finishedTimeSeconds !== null
+    ? finishedTimeSeconds
+    : (isFinished && mode === "time" ? duration : timeElapsed);
   const timeMins = actualTime > 0 ? actualTime / 60 : 0;
 
   const totalTyped = correctChars + incorrectChars;
