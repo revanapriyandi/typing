@@ -21,7 +21,7 @@ export interface TypingStats {
   incorrectChars: number;
   totalTyped: number;
   heatmap: Record<string, { correct: number; incorrect: number }>;
-  keystrokes: { char: string; time: number; index: number }[];
+  keystrokes: { key: string; time: number; index: number }[];
 }
 
 interface UseTypingEngineProps {
@@ -51,7 +51,7 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
   const startTimeRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
   const [heatmap, setHeatmap] = useState<Record<string, { correct: number, incorrect: number }>>({});
-  const [keystrokes, setKeystrokes] = useState<{ char: string; time: number; index: number }[]>([]);
+  const [keystrokes, setKeystrokes] = useState<{ key: string; time: number; index: number }[]>([]);
 
   const { playClick, isMuted, toggleMute } = useTypingSound();
 
@@ -124,6 +124,8 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
         const next = [...prev];
         if (e.key === "Backspace") {
           playClick();
+          const stamp = { key: e.key, time: Date.now() - (startTimeRef.current || Date.now()), index: currentIndex };
+          setKeystrokes((prev) => [...prev, stamp]);
           if (currentIndex > 0) {
             const prevIdx = currentIndex - 1;
             if (next[prevIdx].status === "incorrect") {
@@ -142,7 +144,7 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
         const isCorrect = e.key === text[currentIndex];
         next[currentIndex] = { ...next[currentIndex], status: isCorrect ? "correct" : "incorrect" };
 
-        const stamp = { char: e.key, time: Date.now() - (startTimeRef.current || Date.now()), index: currentIndex };
+        const stamp = { key: e.key, time: Date.now() - (startTimeRef.current || Date.now()), index: currentIndex };
         setKeystrokes((prev) => [...prev, stamp]);
 
         const expectedChar = text[currentIndex].toLowerCase();

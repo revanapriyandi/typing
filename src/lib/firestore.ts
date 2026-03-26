@@ -1,6 +1,5 @@
 import {
   collection,
-  addDoc,
   query,
   orderBy,
   limit,
@@ -17,6 +16,38 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 
+export interface KeystrokeEntry {
+  key: string;
+  time: number;
+  index: number;
+}
+
+export interface VerifyScoreRequest {
+  idToken: string;
+  session: {
+    displayName: string;
+    photoURL: string;
+    country: string;
+    duration: number;
+    mode: string;
+    language: string;
+    sourceText: string;
+    keystrokes: KeystrokeEntry[];
+    timeElapsed: number;
+  };
+}
+
+export interface VerifyScoreResponse {
+  scoreId: string;
+  wpm: number;
+  rawWpm: number;
+  accuracy: number;
+  correctChars: number;
+  incorrectChars: number;
+  totalTyped: number;
+  timeElapsed: number;
+}
+
 export interface ScoreEntry {
   id?: string;
   uid: string;
@@ -28,7 +59,7 @@ export interface ScoreEntry {
   duration: number;
   mode: string;
   language: string;
-  keystrokes?: { char: string; time: number; index: number }[];
+  keystrokes?: KeystrokeEntry[];
   createdAt: Timestamp | null;
 }
 
@@ -46,12 +77,22 @@ export interface UserProfile {
   createdAt: Timestamp | null;
 }
 
-export async function saveScore(score: Omit<ScoreEntry, "id" | "createdAt">): Promise<string> {
-  const docRef = await addDoc(collection(db, "scores"), {
-    ...score,
-    createdAt: serverTimestamp(),
+export async function saveScore(payload: VerifyScoreRequest): Promise<VerifyScoreResponse> {
+  const res = await fetch("/api/scores/verify", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${payload.idToken}`
+    },
+    body: JSON.stringify({ session: payload.session }),
   });
-  return docRef.id;
+
+  if (!res.ok) {
+    const data = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(data?.error || "Failed to verify score");
+  }
+
+  return (await res.json()) as VerifyScoreResponse;
 }
 
 export async function getLeaderboard(
