@@ -46,9 +46,11 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
   const [isFinished, setIsFinished] = useState(false);
   const [timeLeft, setTimeLeft] = useState(mode === "time" ? duration : 0);
   const [timeElapsed, setTimeElapsed] = useState(0);
+  const [finishedTimeSeconds, setFinishedTimeSeconds] = useState<number | null>(null);
   const [correctChars, setCorrectChars] = useState(0);
   const [incorrectChars, setIncorrectChars] = useState(0);
   const startTimeRef = useRef<number | null>(null);
+  const finishTimeRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
   const [heatmap, setHeatmap] = useState<Record<string, { correct: number, incorrect: number }>>({});
   const [keystrokes, setKeystrokes] = useState<{ char: string; time: number; index: number }[]>([]);
@@ -68,11 +70,13 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
     setIsFinished(false);
     setTimeLeft(mode === "time" ? duration : 0);
     setTimeElapsed(0);
+    setFinishedTimeSeconds(null);
     setCorrectChars(0);
     setIncorrectChars(0);
     setHeatmap({});
     setKeystrokes([]);
     startTimeRef.current = null;
+    finishTimeRef.current = null;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
   }, [mode, duration, language, initialText, customText]);
 
@@ -88,6 +92,11 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
         const left = Math.max(0, duration - elapsed);
         setTimeLeft(left);
         if (left <= 0) {
+          const finishMs = startTimeRef.current ? Date.now() - startTimeRef.current : 0;
+          finishTimeRef.current = finishMs;
+          setTimeElapsed(finishMs / 1000);
+          setFinishedTimeSeconds(finishMs / 1000);
+          setTimeLeft(0);
           setIsFinished(true);
           return;
         }
@@ -118,6 +127,8 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
       if (!isStarted && e.key.length === 1) {
         setIsStarted(true);
         startTimeRef.current = Date.now();
+        finishTimeRef.current = null;
+        setFinishedTimeSeconds(null);
       }
 
       setChars((prev) => {
@@ -167,6 +178,10 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
         setCurrentIndex(nextIdx);
 
         if (mode === "words" && nextIdx >= text.length) {
+          const finishMs = startTimeRef.current ? Date.now() - startTimeRef.current : 0;
+          finishTimeRef.current = finishMs;
+          setTimeElapsed(finishMs / 1000);
+          setFinishedTimeSeconds(finishMs / 1000);
           setIsFinished(true);
         }
         return next;
@@ -180,7 +195,9 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  const actualTime = isFinished && mode === "time" ? duration : timeElapsed;
+  const actualTime = isFinished && finishedTimeSeconds !== null
+    ? finishedTimeSeconds
+    : (isFinished && mode === "time" ? duration : timeElapsed);
   const timeMins = actualTime > 0 ? actualTime / 60 : 0;
 
   const totalTyped = correctChars + incorrectChars;
