@@ -48,8 +48,13 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [correctChars, setCorrectChars] = useState(0);
   const [incorrectChars, setIncorrectChars] = useState(0);
+  const [isComposing, setIsComposing] = useState(false);
   const startTimeRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
+  const isComposingRef = useRef(false);
+  const currentIndexRef = useRef(0);
+  const pendingCompositionTextRef = useRef<string | null>(null);
+  const skipNextCompositionInputRef = useRef(false);
   const [heatmap, setHeatmap] = useState<Record<string, { correct: number, incorrect: number }>>({});
   const [keystrokes, setKeystrokes] = useState<{ char: string; time: number; index: number }[]>([]);
 
@@ -70,9 +75,14 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
     setTimeElapsed(0);
     setCorrectChars(0);
     setIncorrectChars(0);
+    setIsComposing(false);
     setHeatmap({});
     setKeystrokes([]);
     startTimeRef.current = null;
+    isComposingRef.current = false;
+    currentIndexRef.current = 0;
+    pendingCompositionTextRef.current = null;
+    skipNextCompositionInputRef.current = false;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
   }, [mode, duration, language, initialText, customText]);
 
@@ -100,85 +110,182 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
     };
   }, [isStarted, isFinished, mode, duration]);
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (isFinished) return;
-      if (e.key === "Tab") {
-        e.preventDefault();
-        initTest();
-        return;
-      }
-      if (e.key === "Escape") {
-        initTest();
-        return;
-      }
-      if (e.key.length !== 1 && e.key !== "Backspace") return;
-      if (e.key === " ") e.preventDefault();
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
 
-      if (!isStarted && e.key.length === 1) {
-        setIsStarted(true);
-        startTimeRef.current = Date.now();
-      }
+  const applyInput = useCallback((input: string) => {
+    if (!input || isFinished) return;
 
-      setChars((prev) => {
-        const next = [...prev];
-        if (e.key === "Backspace") {
-          playClick();
-          if (currentIndex > 0) {
-            const prevIdx = currentIndex - 1;
-            if (next[prevIdx].status === "incorrect") {
-              setIncorrectChars((c) => Math.max(0, c - 1));
-            } else if (next[prevIdx].status === "correct") {
-              setCorrectChars((c) => Math.max(0, c - 1));
-            }
-            next[prevIdx] = { ...next[prevIdx], status: "pending" };
-            setCurrentIndex(prevIdx);
-          }
-          return next;
-        }
+    if (!isStarted) {
+      setIsStarted(true);
+      startTimeRef.current = Date.now();
+    }
 
-        if (currentIndex >= text.length) return next;
+    setChars((prev) => {
+      const next = [...prev];
+      let nextIdx = currentIndexRef.current;
+      let correctDelta = 0;
+      let incorrectDelta = 0;
+      const stamps: { char: string; time: number; index: number }[] = [];
+      const heatmapDeltas: Record<string, { correct: number; incorrect: number }> = {};
 
-        const isCorrect = e.key === text[currentIndex];
-        next[currentIndex] = { ...next[currentIndex], status: isCorrect ? "correct" : "incorrect" };
+      for (const typedChar of input) {
+        if (nextIdx >= text.length) break;
 
-        const stamp = { char: e.key, time: Date.now() - (startTimeRef.current || Date.now()), index: currentIndex };
-        setKeystrokes((prev) => [...prev, stamp]);
+        const isCorrect = typedChar === text[nextIdx];
+        next[nextIdx] = { ...next[nextIdx], status: isCorrect ? "correct" : "incorrect" };
+        stamps.push({ char: typedChar, time: Date.now() - (startTimeRef.current || Date.now()), index: nextIdx });
 
-        const expectedChar = text[currentIndex].toLowerCase();
-        
-        setHeatmap((prev) => {
-          const map = { ...prev };
-          if (!map[expectedChar]) map[expectedChar] = { correct: 0, incorrect: 0 };
-          if (isCorrect) map[expectedChar].correct += 1;
-          else map[expectedChar].incorrect += 1;
-          return map;
-        });
-
+        const expectedChar = text[nextIdx].toLowerCase();
+        if (!heatmapDeltas[expectedChar]) heatmapDeltas[expectedChar] = { correct: 0, incorrect: 0 };
         if (isCorrect) {
-          setCorrectChars((c) => c + 1);
+          heatmapDeltas[expectedChar].correct += 1;
+          correctDelta += 1;
           playClick();
         } else {
-          setIncorrectChars((c) => c + 1);
+          heatmapDeltas[expectedChar].incorrect += 1;
+          incorrectDelta += 1;
           playClick(true);
         }
 
-        const nextIdx = currentIndex + 1;
-        setCurrentIndex(nextIdx);
+        nextIdx += 1;
+      }
 
-        if (mode === "words" && nextIdx >= text.length) {
-          setIsFinished(true);
+      if (stamps.length === 0) return next;
+
+      setKeystrokes((prevKeys) => [...prevKeys, ...stamps]);
+      setHeatmap((prevMap) => {
+        const map = { ...prevMap };
+        for (const [char, delta] of Object.entries(heatmapDeltas)) {
+          if (!map[char]) map[char] = { correct: 0, incorrect: 0 };
+          map[char].correct += delta.correct;
+          map[char].incorrect += delta.incorrect;
         }
-        return next;
+        return map;
       });
-    },
-    [isFinished, isStarted, currentIndex, text, mode, initTest, playClick]
-  );
+      if (correctDelta > 0) setCorrectChars((c) => c + correctDelta);
+      if (incorrectDelta > 0) setIncorrectChars((c) => c + incorrectDelta);
+
+      currentIndexRef.current = nextIdx;
+      setCurrentIndex(nextIdx);
+      if (mode === "words" && nextIdx >= text.length) {
+        setIsFinished(true);
+      }
+
+      return next;
+    });
+  }, [isFinished, isStarted, mode, playClick, text]);
+
+  const handleBackspace = useCallback(() => {
+    if (isFinished) return;
+    playClick();
+
+    setChars((prev) => {
+      const next = [...prev];
+      const index = currentIndexRef.current;
+      if (index > 0) {
+        const prevIdx = index - 1;
+        if (next[prevIdx].status === "incorrect") {
+          setIncorrectChars((c) => Math.max(0, c - 1));
+        } else if (next[prevIdx].status === "correct") {
+          setCorrectChars((c) => Math.max(0, c - 1));
+        }
+        next[prevIdx] = { ...next[prevIdx], status: "pending" };
+        currentIndexRef.current = prevIdx;
+        setCurrentIndex(prevIdx);
+      }
+      return next;
+    });
+  }, [isFinished, playClick]);
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (isFinished) return;
+    if (e.key === "Tab") {
+      e.preventDefault();
+      initTest();
+      return;
+    }
+    if (e.key === "Escape") {
+      initTest();
+      return;
+    }
+
+    if (isComposingRef.current || e.isComposing) return;
+    if (e.key.length !== 1 && e.key !== "Backspace") return;
+    if (e.key === " ") e.preventDefault();
+
+    if (e.key === "Backspace") {
+      handleBackspace();
+      return;
+    }
+
+    applyInput(e.key);
+  }, [isFinished, initTest, handleBackspace, applyInput]);
+
+  const handleCompositionStart = useCallback(() => {
+    isComposingRef.current = true;
+    setIsComposing(true);
+  }, []);
+
+  const handleCompositionUpdate = useCallback(() => {
+    isComposingRef.current = true;
+    setIsComposing(true);
+  }, []);
+
+  const handleCompositionEnd = useCallback((e: CompositionEvent) => {
+    isComposingRef.current = false;
+    setIsComposing(false);
+    pendingCompositionTextRef.current = e.data ?? "";
+  }, []);
+
+  const handleInput = useCallback((e: Event) => {
+    if (isFinished) return;
+    const inputEvent = e as InputEvent;
+    if (skipNextCompositionInputRef.current && inputEvent.inputType === "insertFromComposition") {
+      skipNextCompositionInputRef.current = false;
+      return;
+    }
+    const data = inputEvent.data ?? "";
+    const isCompositionCommit =
+      inputEvent.inputType === "insertFromComposition" ||
+      (pendingCompositionTextRef.current !== null && data === pendingCompositionTextRef.current);
+
+    if (!isCompositionCommit || !data) return;
+
+    pendingCompositionTextRef.current = null;
+    applyInput(data);
+  }, [isFinished, applyInput]);
+
+  const handleBeforeInput = useCallback((e: Event) => {
+    if (isFinished) return;
+    const inputEvent = e as InputEvent;
+    if (inputEvent.inputType !== "insertFromComposition") return;
+
+    const data = inputEvent.data ?? "";
+    if (!data) return;
+
+    pendingCompositionTextRef.current = null;
+    skipNextCompositionInputRef.current = true;
+    applyInput(data);
+  }, [isFinished, applyInput]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
+    window.addEventListener("compositionstart", handleCompositionStart);
+    window.addEventListener("compositionupdate", handleCompositionUpdate);
+    window.addEventListener("compositionend", handleCompositionEnd);
+    window.addEventListener("beforeinput", handleBeforeInput);
+    window.addEventListener("input", handleInput);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("compositionstart", handleCompositionStart);
+      window.removeEventListener("compositionupdate", handleCompositionUpdate);
+      window.removeEventListener("compositionend", handleCompositionEnd);
+      window.removeEventListener("beforeinput", handleBeforeInput);
+      window.removeEventListener("input", handleInput);
+    };
+  }, [handleKeyDown, handleCompositionStart, handleCompositionUpdate, handleCompositionEnd, handleBeforeInput, handleInput]);
 
   const actualTime = isFinished && mode === "time" ? duration : timeElapsed;
   const timeMins = actualTime > 0 ? actualTime / 60 : 0;
@@ -205,5 +312,5 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
     keystrokes,
   };
 
-  return { chars, currentIndex, stats, reset: initTest, isMuted, toggleMute };
+  return { chars, currentIndex, stats, reset: initTest, isMuted, toggleMute, isComposing };
 }
