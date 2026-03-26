@@ -50,15 +50,23 @@ export default function TestPage() {
   } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showExitWarning, setShowExitWarning] = useState(false);
+  const [isTypingAreaFocused, setIsTypingAreaFocused] = useState(false);
   const { user } = useAuth();
   const savedRef = useRef(false);
 
   const activeCharRef = useRef<HTMLSpanElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminalBodyRef = useRef<HTMLDivElement>(null);
+  const typingAreaRef = useRef<HTMLDivElement>(null);
 
   const dur = mode === "time" ? time : words;
-  const { chars, currentIndex, stats, reset, isMuted, toggleMute } = useTypingEngine({ mode, duration: dur, language: lang, customText });
+  const { chars, currentIndex, stats, reset, isMuted, toggleMute, handleKeyDown } = useTypingEngine({
+    mode,
+    duration: dur,
+    language: lang,
+    customText,
+    keyListenerTarget: "manual",
+  });
 
   // Prevent hydration mismatch on audio toggle
   const [mounted, setMounted] = useState(false);
@@ -71,6 +79,12 @@ export default function TestPage() {
       activeCharRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [currentIndex]);
+
+  useEffect(() => {
+    if (!stats.isStarted && !stats.isFinished && lang !== "custom") {
+      typingAreaRef.current?.focus();
+    }
+  }, [stats.isStarted, stats.isFinished, lang]);
 
   useEffect(() => {
     // Detect browser language on first load
@@ -212,6 +226,7 @@ export default function TestPage() {
     if (terminalBodyRef.current) {
       terminalBodyRef.current.scrollTo({ top: 0, behavior: 'instant' });
     }
+    typingAreaRef.current?.focus();
   };
 
   const progressValue = mode === "time"
@@ -366,9 +381,14 @@ export default function TestPage() {
               </div>
             )}
             <div
+              ref={typingAreaRef}
               className={`font-mono text-3xl sm:text-4xl md:text-5xl leading-[1.6] select-none break-words whitespace-pre-wrap transition-opacity duration-500 outline-none w-full pb-32 ${isFullscreen ? "mt-4" : "mt-2"}`}
               style={{ opacity: !stats.isStarted && !stats.isFinished ? 0.4 : 1 }}
               tabIndex={0}
+              onFocus={() => setIsTypingAreaFocused(true)}
+              onBlur={() => setIsTypingAreaFocused(false)}
+              onClick={() => typingAreaRef.current?.focus()}
+              onKeyDown={(e) => handleKeyDown(e.nativeEvent)}
             >
             {chars.map((c, i) => (
               <Character 
@@ -387,8 +407,8 @@ export default function TestPage() {
       {/* ── Footer hints ── */}
       <div className="flex items-center justify-between w-full max-w-5xl text-sm font-medium text-muted-foreground">
         <div className="space-x-6">
-          <span><kbd className="px-2.5 py-1 bg-muted rounded-md border border-border/50 font-mono text-[11px] shadow-sm uppercase tracking-wider">Tab</kbd> Restart</span>
-          <span><kbd className="px-2.5 py-1 bg-muted rounded-md border border-border/50 font-mono text-[11px] shadow-sm uppercase tracking-wider">Esc</kbd> Reset</span>
+          <span className={isTypingAreaFocused ? "text-foreground" : ""}><kbd className="px-2.5 py-1 bg-muted rounded-md border border-border/50 font-mono text-[11px] shadow-sm uppercase tracking-wider">Tab</kbd> Restart</span>
+          <span className={isTypingAreaFocused ? "text-foreground" : ""}><kbd className="px-2.5 py-1 bg-muted rounded-md border border-border/50 font-mono text-[11px] shadow-sm uppercase tracking-wider">Esc</kbd> Reset</span>
         </div>
         {user && !user.isAnonymous ? (
           <span className="text-emerald-500 font-semibold flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/> Auto-saving</span>
