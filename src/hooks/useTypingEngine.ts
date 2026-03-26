@@ -21,7 +21,7 @@ export interface TypingStats {
   incorrectChars: number;
   totalTyped: number;
   heatmap: Record<string, { correct: number; incorrect: number }>;
-  keystrokes: { char: string; time: number; index: number }[];
+  keystrokes: { key: string; time: number; index: number }[];
 }
 
 interface UseTypingEngineProps {
@@ -59,7 +59,7 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
   const pendingCompositionTextRef = useRef<string | null>(null);
   const skipNextCompositionInputRef = useRef(false);
   const [heatmap, setHeatmap] = useState<Record<string, { correct: number, incorrect: number }>>({});
-  const [keystrokes, setKeystrokes] = useState<{ char: string; time: number; index: number }[]>([]);
+  const [keystrokes, setKeystrokes] = useState<{ key: string; time: number; index: number }[]>([]);
 
   const { playClick, isMuted, toggleMute } = useTypingSound();
 
@@ -150,8 +150,24 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
         setFinishedTimeSeconds(null);
       }
 
-  const applyInput = useCallback((input: string) => {
-    if (!input || isFinished) return;
+      setChars((prev) => {
+        const next = [...prev];
+        if (e.key === "Backspace") {
+          playClick();
+          const stamp = { key: e.key, time: Date.now() - (startTimeRef.current || Date.now()), index: currentIndex };
+          setKeystrokes((prev) => [...prev, stamp]);
+          if (currentIndex > 0) {
+            const prevIdx = currentIndex - 1;
+            if (next[prevIdx].status === "incorrect") {
+              setIncorrectChars((c) => Math.max(0, c - 1));
+            } else if (next[prevIdx].status === "correct") {
+              setCorrectChars((c) => Math.max(0, c - 1));
+            }
+            next[prevIdx] = { ...next[prevIdx], status: "pending" };
+            setCurrentIndex(prevIdx);
+          }
+          return next;
+        }
 
     if (!isStarted) {
       setIsStarted(true);
@@ -166,8 +182,8 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
       const stamps: { char: string; time: number; index: number }[] = [];
       const heatmapDeltas: Record<string, { correct: number; incorrect: number }> = {};
 
-      for (const typedChar of input) {
-        if (nextIdx >= text.length) break;
+        const stamp = { key: e.key, time: Date.now() - (startTimeRef.current || Date.now()), index: currentIndex };
+        setKeystrokes((prev) => [...prev, stamp]);
 
         const isCorrect = typedChar === text[nextIdx];
         next[nextIdx] = { ...next[nextIdx], status: isCorrect ? "correct" : "incorrect" };

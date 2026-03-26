@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useTypingEngine } from "@/hooks/useTypingEngine";
 import { useAuth } from "@/context/AuthContext";
-import { saveScore, updateUserStats, unlockAchievements, getUserProfile } from "@/lib/firestore";
+import { saveScore, updateUserStats, unlockAchievements, getUserProfile, VerifyScoreResponse } from "@/lib/firestore";
 import { checkAchievements, ACHIEVEMENTS } from "@/lib/achievements";
 import { toast } from "sonner";
 import { Language } from "@/lib/words";
@@ -101,14 +101,29 @@ export default function TestPage() {
     }
   }, []);
 
-  const doSave = async (wpm: number, accuracy: number) => {
-    if (!user || user.isAnonymous) return;
+  const doSave = async (): Promise<VerifyScoreResponse | null> => {
+    if (!user || user.isAnonymous) return null;
     try {
-      await saveScore({ uid: user.uid, displayName: user.displayName || "Anonymous", photoURL: user.photoURL || "", country: "Unknown", wpm, accuracy, duration: mode === "time" ? time : 0, mode: mode === "time" ? `${time}s` : `${words}w`, language: lang, keystrokes: stats.keystrokes });
-      await updateUserStats(user.uid, wpm, mode === "time" ? time : 0, stats.heatmap);
+      const idToken = await user.getIdToken();
+      const verified = await saveScore({
+        idToken,
+        session: {
+          displayName: user.displayName || "Anonymous",
+          photoURL: user.photoURL || "",
+          country: "Unknown",
+          duration: mode === "time" ? time : 0,
+          mode: mode === "time" ? `${time}s` : `${words}w`,
+          language: lang,
+          sourceText: chars.map((c) => c.char).join(""),
+          keystrokes: stats.keystrokes,
+          timeElapsed: stats.timeElapsed,
+        },
+      });
+
+      await updateUserStats(user.uid, verified.wpm, mode === "time" ? time : 0, stats.heatmap);
       const profile = await getUserProfile(user.uid);
       if (profile) {
-        const newAchs = checkAchievements({ wpm, accuracy, totalTests: profile.totalTests + 1, unlockedAchievements: profile.achievements || [], duration: mode === "time" ? time : 0 }, new Date().getHours());
+        const newAchs = checkAchievements({ wpm: verified.wpm, accuracy: verified.accuracy, totalTests: profile.totalTests + 1, unlockedAchievements: profile.achievements || [], duration: mode === "time" ? time : 0 }, new Date().getHours());
         if (newAchs.length) {
           await unlockAchievements(user.uid, newAchs);
           newAchs.forEach((id, i) => {
@@ -117,9 +132,11 @@ export default function TestPage() {
           });
         }
       }
+      return verified;
     } catch (e) {
       console.error(e);
       toast.error("Failed to save score");
+      return null;
     }
   };
 
@@ -135,7 +152,18 @@ export default function TestPage() {
         timeElapsed: stats.timeElapsed
       });
       setShowResult(true);
-      doSave(stats.wpm, stats.accuracy);
+      void doSave().then((verified) => {
+        if (verified) {
+          setResult({
+            wpm: verified.wpm,
+            rawWpm: verified.rawWpm,
+            accuracy: verified.accuracy,
+            correctChars: verified.correctChars,
+            incorrectChars: verified.incorrectChars,
+            timeElapsed: verified.timeElapsed,
+          });
+        }
+      });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stats.isFinished]);
