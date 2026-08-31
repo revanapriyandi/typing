@@ -1,8 +1,7 @@
 import { MetadataRoute } from "next";
+import { absoluteUrl } from "@/lib/seo";
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = "https://typerush-app.web.app";
-
   return {
     rules: {
       userAgent: "*",
@@ -12,6 +11,6 @@ export default function robots(): MetadataRoute.Robots {
         "/api/", // exclude private API endpoints if any exist
       ],
     },
-    sitemap: `${baseUrl}/sitemap.xml`,
+    sitemap: absoluteUrl("/sitemap.xml"),
   };
 }
