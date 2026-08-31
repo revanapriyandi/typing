@@ -1,8 +1,11 @@
 {
   "name": "TypeRush",
   "short_name": "TypeRush",
-  "description": "Test your typing speed, compete globally on real-time leaderboards, unlock achievements, and race against friends in multiplayer mode.",
-  "start_url": "/",
+  "description": "Free online typing speed test with WPM tracking, global leaderboards, tournaments, and multiplayer races.",
+  "start_url": "/id",
+  "scope": "/",
+  "lang": "id",
+  "dir": "ltr",
   "display": "standalone",
   "background_color": "#09090b",
   "theme_color": "#09090b",
