@@ -10,11 +10,14 @@ import { DisableDevTools } from "@/components/DisableDevTools";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import { absoluteUrl, languageAlternates, LOCALES, SITE_URL, type Locale } from "@/lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
+  if (!LOCALES.includes(locale as Locale)) notFound();
   const messages = (await import(`../../../messages/${locale}.json`)).default;
   const t = messages.Metadata;
+  const localizedUrl = absoluteUrl(`/${locale}`);
 
   return {
     title: {
@@ -22,18 +25,37 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
       template: `%s | TypeRush`
     },
     description: t.description,
-    keywords: ["typing test", "WPM", "typing speed", "leaderboard", "online typing", "type race", "fast typing", "TypeRush"],
+    applicationName: "TypeRush",
+    category: "education",
+    keywords: ["typing test", "WPM test", "typing speed test", "online typing test", "type race", "typing practice", "TypeRush"],
     authors: [{ name: "TypeRush Team" }],
     creator: "TypeRush",
+    publisher: "TypeRush",
+    metadataBase: new URL(SITE_URL),
+    alternates: {
+      canonical: localizedUrl,
+      languages: languageAlternates("/"),
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
+    },
     openGraph: {
       type: "website",
       locale: locale === "id" ? "id_ID" : "en_US",
-      url: "https://type-rust.vercel.app",
+      url: localizedUrl,
       title: t.ogTitle,
       description: t.ogDescription,
       siteName: "TypeRush",
       images: [{
-        url: "/og-image.png",
+        url: absoluteUrl("/opengraph-image"),
         width: 1200,
         height: 630,
         alt: "TypeRush — Online Typing Speed Test",
@@ -43,7 +65,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
       card: "summary_large_image",
       title: t.twitterTitle,
       description: t.twitterDescription,
-      images: ["/og-image.png"],
+      images: [absoluteUrl("/opengraph-image")],
     },
     icons: {
       icon: "/icon.png",
@@ -51,9 +73,11 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
       apple: "/icon.png",
     },
     manifest: "/manifest.json",
-    metadataBase: new URL("https://type-rust.vercel.app"),
     verification: {
       google: "45UrIXtcX7bCpQ-QiDX32flCcABUU4JB6I4f7hE5Bh0",
+    },
+    formatDetection: {
+      telephone: false,
     },
   };
 }
@@ -73,6 +97,37 @@ export default async function RootLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "WebSite",
+                  "@id": `${absoluteUrl(`/${locale}`)}#website`,
+                  url: absoluteUrl(`/${locale}`),
+                  name: "TypeRush",
+                  description: messages.Metadata.description,
+                  inLanguage: locale,
+                },
+                {
+                  "@type": "SoftwareApplication",
+                  name: "TypeRush",
+                  url: absoluteUrl(`/${locale}`),
+                  applicationCategory: "EducationalApplication",
+                  operatingSystem: "Web",
+                  description: messages.Metadata.description,
+                  offers: {
+                    "@type": "Offer",
+                    price: "0",
+                    priceCurrency: "USD",
+                  },
+                },
+              ],
+            }).replace(/</g, "\\u003c"),
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
              __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':

@@ -180,6 +180,17 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="w-full px-4 md:px-8 py-16 bg-background" aria-labelledby="seo-heading">
+        <div className="max-w-3xl mx-auto text-center space-y-4">
+          <h2 id="seo-heading" className="text-2xl md:text-3xl font-black tracking-tight">
+            {t("seoTitle")}
+          </h2>
+          <p className="text-muted-foreground leading-relaxed">
+            {t("seoDescription")}
+          </p>
+        </div>
+      </section>
+
       <footer className="py-8 text-center text-sm text-muted-foreground bg-background border-t border-border/30">
         <p>{t("footerText")}</p>
       </footer>
