@@ -120,54 +120,12 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
     };
   }, [isStarted, isFinished, mode, duration]);
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (isFinished) return;
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
 
-      const target = e.target as HTMLElement | null;
-      if (target) {
-        const tag = target.tagName.toLowerCase();
-        const isEditable = target.isContentEditable || tag === "input" || tag === "textarea";
-        if (isEditable) return;
-      }
-
-      if (e.key === "Tab") {
-        e.preventDefault();
-        initTest();
-        return;
-      }
-      if (e.key === "Escape") {
-        initTest();
-        return;
-      }
-      if (e.key.length !== 1 && e.key !== "Backspace") return;
-      if (e.key === " ") e.preventDefault();
-
-      if (!isStarted && e.key.length === 1) {
-        setIsStarted(true);
-        startTimeRef.current = Date.now();
-        finishTimeRef.current = null;
-        setFinishedTimeSeconds(null);
-      }
-
-      setChars((prev) => {
-        const next = [...prev];
-        if (e.key === "Backspace") {
-          playClick();
-          const stamp = { key: e.key, time: Date.now() - (startTimeRef.current || Date.now()), index: currentIndex };
-          setKeystrokes((prev) => [...prev, stamp]);
-          if (currentIndex > 0) {
-            const prevIdx = currentIndex - 1;
-            if (next[prevIdx].status === "incorrect") {
-              setIncorrectChars((c) => Math.max(0, c - 1));
-            } else if (next[prevIdx].status === "correct") {
-              setCorrectChars((c) => Math.max(0, c - 1));
-            }
-            next[prevIdx] = { ...next[prevIdx], status: "pending" };
-            setCurrentIndex(prevIdx);
-          }
-          return next;
-        }
+  const applyInput = useCallback((input: string) => {
+    if (!input || isFinished) return;
 
     if (!isStarted) {
       setIsStarted(true);
@@ -179,15 +137,15 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
       let nextIdx = currentIndexRef.current;
       let correctDelta = 0;
       let incorrectDelta = 0;
-      const stamps: { char: string; time: number; index: number }[] = [];
+      const stamps: { key: string; time: number; index: number }[] = [];
       const heatmapDeltas: Record<string, { correct: number; incorrect: number }> = {};
 
-        const stamp = { key: e.key, time: Date.now() - (startTimeRef.current || Date.now()), index: currentIndex };
-        setKeystrokes((prev) => [...prev, stamp]);
+      for (const typedChar of input) {
+        if (nextIdx >= text.length) break;
 
         const isCorrect = typedChar === text[nextIdx];
         next[nextIdx] = { ...next[nextIdx], status: isCorrect ? "correct" : "incorrect" };
-        stamps.push({ char: typedChar, time: Date.now() - (startTimeRef.current || Date.now()), index: nextIdx });
+        stamps.push({ key: typedChar, time: Date.now() - (startTimeRef.current || Date.now()), index: nextIdx });
 
         const expectedChar = text[nextIdx].toLowerCase();
         if (!heatmapDeltas[expectedChar]) heatmapDeltas[expectedChar] = { correct: 0, incorrect: 0 };
@@ -221,9 +179,7 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
 
       currentIndexRef.current = nextIdx;
       setCurrentIndex(nextIdx);
-      if (mode === "words" && nextIdx >= text.length) {
-        setIsFinished(true);
-      }
+      if (mode === "words" && nextIdx >= text.length) setIsFinished(true);
 
       return next;
     });
@@ -253,6 +209,13 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (isFinished) return;
+
+    const target = e.target as HTMLElement | null;
+    if (target) {
+      const tag = target.tagName.toLowerCase();
+      if (target.isContentEditable || tag === "input" || tag === "textarea") return;
+    }
+
     if (e.key === "Tab") {
       e.preventDefault();
       initTest();
@@ -367,5 +330,5 @@ export function useTypingEngine({ mode, duration, language, initialText, customT
     keystrokes,
   };
 
-  return { chars, currentIndex, stats, reset: initTest, isMuted, toggleMute, isComposing };
+  return { chars, currentIndex, stats, reset: initTest, isMuted, toggleMute, isComposing, handleKeyDown };
 }
